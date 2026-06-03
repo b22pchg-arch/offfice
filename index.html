@@ -1,0 +1,2570 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <title>Đọc/Sửa VBA + Xem Sheet/Document/Text + Kiểm tra file offline</title>
+  <style>
+    :root{
+      --bg:#0f172a; --panel:#111827; --panel2:#1f2937; --text:#e5e7eb; --muted:#9ca3af;
+      --line:#334155; --accent:#38bdf8; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444;
+      --code:#020617; --chip:#0f766e;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{margin:0;background:linear-gradient(135deg,#0f172a,#111827 55%,#0b1120);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;display:flex;flex-direction:column;overflow:hidden;}
+    header{padding:14px 20px;border-bottom:1px solid var(--line);background:rgba(15,23,42,.94);flex:0 0 auto;z-index:10;backdrop-filter:blur(8px)}
+    h1{font-size:20px;margin:0 0 6px;color:#fff} .sub{color:var(--muted);font-size:13px;line-height:1.45}
+    main{width:100%;max-width:none;margin:0;padding:12px;display:grid;grid-template-columns:360px minmax(0,1fr);gap:12px;flex:1 1 auto;min-height:0;overflow:hidden}
+    .card{background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 35px rgba(0,0,0,.22);overflow:hidden;min-height:0;}
+    main > .card:first-child{overflow:auto;}
+    main > .card:last-child{display:flex;flex-direction:column;}
+    .card h2{font-size:15px;margin:0;padding:13px 14px;border-bottom:1px solid var(--line);background:rgba(31,41,55,.8)}
+    .card .body{padding:14px}
+    .drop{border:2px dashed #475569;border-radius:14px;padding:18px;text-align:center;background:rgba(2,6,23,.35);transition:.2s;cursor:pointer}
+    .drop.drag{border-color:var(--accent);background:rgba(56,189,248,.08)}
+    .drop b{display:block;font-size:15px;margin-bottom:6px}.drop span{color:var(--muted);font-size:12px;line-height:1.45}
+    input[type=file]{display:none}
+    button{border:0;border-radius:10px;padding:9px 12px;font-weight:700;color:#06121f;background:var(--accent);cursor:pointer;transition:.15s}
+    button:hover{filter:brightness(1.08)} button:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(1)}
+    .btn2{background:#374151;color:#e5e7eb;border:1px solid #4b5563}.btnok{background:var(--ok);color:#06240f}.btnwarn{background:var(--warn);color:#1f1300}.btnbad{background:var(--bad);color:#fff}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row + .row{margin-top:8px}
+    .status{font-size:13px;color:var(--muted);line-height:1.45;white-space:pre-wrap}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+    .kv{display:grid;grid-template-columns:135px 1fr;gap:7px 10px;font-size:13px}.kv div:nth-child(odd){color:var(--muted)}
+    .chips{display:flex;gap:6px;flex-wrap:wrap}.chip{font-size:11px;background:#1e293b;border:1px solid #334155;color:#cbd5e1;border-radius:999px;padding:4px 8px}.chip.ok{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35)}.chip.warn{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35)}.chip.bad{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35)}
+    .module-list{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#0b1220}.module-item{padding:9px 10px;border-bottom:1px solid rgba(51,65,85,.65);cursor:pointer}.module-item:hover,.module-item.active{background:#1e293b}.module-title{font-size:13px;font-weight:800;color:#fff;display:flex;justify-content:space-between;gap:8px}.module-meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}.badge{border-radius:999px;padding:2px 7px;font-size:10px;background:#334155;color:#e2e8f0;white-space:nowrap}.badge.warn{background:rgba(245,158,11,.18);color:#fbbf24}.badge.ok{background:rgba(34,197,94,.15);color:#86efac}
+    .viewer-head{display:flex;gap:10px;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(31,41,55,.65);flex:0 0 auto;flex-wrap:wrap}.viewer-title{font-weight:800}.search{background:#020617;color:#e5e7eb;border:1px solid #334155;border-radius:10px;padding:9px 10px;min-width:220px}
+    .code-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(15,23,42,.85);flex:0 0 auto}.code-toolbar .search{min-width:300px;flex:1 1 360px}.checkline{font-size:12px;color:#cbd5e1;display:flex;align-items:center;gap:6px;white-space:nowrap}.select{background:#020617;color:#e5e7eb;border:1px solid #334155;border-radius:10px;padding:9px 10px}.match-count{font-size:12px;color:var(--muted);min-width:72px;text-align:center}.code-wrap{flex:1 1 auto;min-height:0;background:#020617;display:flex;}
+    textarea.code-edit{margin:0;background:#020617;color:#e5e7eb;border:0;outline:none;resize:none;padding:14px;font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.45;tab-size:2;min-height:0;height:100%;width:100%;white-space:pre;overflow:auto;}
+    .editbar{display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.10);flex:0 0 auto}.editbar.show{display:flex}.dirtydot{display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:99px;margin-right:6px}.write-log{font-size:12px;color:#cbd5e1;line-height:1.45;white-space:pre-wrap;background:#020617;border:1px solid #334155;border-radius:10px;padding:9px;max-height:180px;overflow:auto}
+    pre{margin:0;background:var(--code);color:#d1d5db;overflow:auto;padding:14px;font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.45;tab-size:2;min-height:0;height:100%;width:100%;white-space:pre}
+    .code-empty{padding:28px;color:var(--muted);text-align:center;background:#020617;min-height:0;height:100%;width:100%;display:flex;align-items:center;justify-content:center;}
+    mark.hl{border-radius:3px;padding:0 1px;color:#08111f}.hl-yellow{background:#fde047}.hl-green{background:#86efac}.hl-red{background:#fca5a5}.hl-blue{background:#93c5fd}.hl-purple{background:#d8b4fe}.hl-active{outline:2px solid #fff;box-shadow:0 0 0 3px rgba(251,146,60,.75);background:#fb923c!important;color:#111827!important}.sus-mark{background:rgba(239,68,68,.28);color:#fecaca;border-bottom:1px dashed #f87171;border-radius:3px;padding:0 1px}
+    table{width:100%;border-collapse:collapse;font-size:12px}th,td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}th{color:#cbd5e1;background:#1f2937;position:sticky;top:0}td{color:#e5e7eb}.small{font-size:12px;color:var(--muted);line-height:1.45}.hidden{display:none!important}.mt{margin-top:12px}
+    .warnbox{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.1);border-radius:12px;padding:10px;font-size:12px;color:#fde68a;line-height:1.45}.okbox{border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.1);border-radius:12px;padding:10px;font-size:12px;color:#bbf7d0;line-height:1.45}
+
+    .recovery-panel{font-size:12px;color:#cbd5e1;line-height:1.5;background:#020617;border:1px solid #334155;border-radius:10px;padding:10px;white-space:pre-wrap;max-height:220px;overflow:auto}
+    .safe-note{border:1px solid rgba(56,189,248,.35);background:rgba(56,189,248,.08);border-radius:12px;padding:10px;font-size:12px;color:#bae6fd;line-height:1.45}
+    .mini-list{margin:8px 0 0 18px;padding:0;color:#cbd5e1;font-size:12px;line-height:1.5}
+    @media(max-width:900px){body{overflow:auto}main{grid-template-columns:1fr;padding:10px;overflow:visible;min-height:100vh}main > .card:first-child{overflow:visible}.module-list{max-height:260px}.code-wrap{height:70vh;min-height:460px}.viewer-head{align-items:stretch}.search{width:100%;min-width:0}.code-toolbar .search{min-width:0;flex-basis:100%}}
+
+    .pane-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+    .tabbtn{background:#1f2937;color:#e5e7eb;border:1px solid #475569;padding:8px 11px;border-radius:999px}
+    .tabbtn.active{background:var(--accent);color:#06121f;border-color:var(--accent)}
+    .sheet-controls{display:grid;grid-template-columns:1fr;gap:8px}
+    .sheet-controls label{font-size:12px;color:#cbd5e1;display:flex;flex-direction:column;gap:5px}
+    .sheet-pane{flex:1 1 auto;min-height:0;background:#07111f;display:flex;flex-direction:column;width:100%;overflow:hidden}
+    .sheet-pane.hidden{display:none!important}
+    .sheet-topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(15,23,42,.88);flex:0 0 auto}
+    .cell-info{font-size:12px;color:#cbd5e1;line-height:1.45;padding:8px 12px;border-bottom:1px solid var(--line);background:#020617;white-space:pre-wrap;min-height:34px;flex:0 0 auto}
+    .sheet-grid-wrap{flex:1 1 auto;min-height:0;overflow:auto;background:#0b1220;padding:10px}
+    table.sheet-grid{border-collapse:collapse;background:#fff;color:#111827;font-family:Calibri,Arial,sans-serif;font-size:12px;table-layout:fixed;min-width:max-content;box-shadow:0 0 0 1px #cbd5e1}
+    .sheet-grid th,.sheet-grid td{border:1px solid #d1d5db;min-width:72px;height:22px;max-width:280px;padding:2px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;vertical-align:middle}
+    .sheet-grid th{position:sticky;background:#e5e7eb;color:#111827;z-index:2;text-align:center;font-weight:700}
+    .sheet-grid .corner{left:0;top:0;z-index:4;min-width:46px;width:46px}
+    .sheet-grid .colhead{top:0;z-index:3}
+    .sheet-grid .rowhead{left:0;z-index:3;min-width:46px;width:46px;background:#e5e7eb;text-align:right;color:#111827}
+    .sheet-grid td.selected{outline:2px solid #2563eb;outline-offset:-2px}
+    .sheet-grid td.search-hit{box-shadow:inset 0 0 0 9999px rgba(250,204,21,.35)}
+    .sheet-grid td.formula-cell::after{content:'ƒ';font-size:10px;color:#2563eb;float:right;font-weight:700}
+    .sheet-empty{padding:24px;text-align:center;color:#cbd5e1;border:1px dashed #475569;border-radius:14px;background:#020617}
+    .sheet-warning{font-size:12px;color:#fbbf24;line-height:1.45;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);border-radius:10px;padding:8px;margin-top:8px}
+
+    .pane-tabs{width:100%;display:flex;gap:8px;align-items:center;flex-wrap:nowrap;overflow:auto;padding:4px;background:rgba(2,6,23,.34);border:1px solid #334155;border-radius:999px}
+    .pane-tabs .tabbtn{flex:0 0 auto;min-width:118px;text-align:center;border-radius:999px}
+    .doc-pane{flex:1 1 auto;min-height:0;background:#07111f;display:flex;flex-direction:column;width:100%;overflow:hidden}
+    .doc-pane.hidden{display:none!important}
+    .doc-topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(15,23,42,.88);flex:0 0 auto}
+    .doc-view-wrap{flex:1 1 auto;min-height:0;overflow:auto;background:#0b1220;padding:14px}
+    .doc-page{background:#fff;color:#111827;border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,.3);max-width:920px;margin:0 auto 16px;padding:28px;font-family:Calibri,Arial,sans-serif;line-height:1.45}
+    .doc-page h3{margin:0 0 12px;color:#0f172a;border-bottom:1px solid #e5e7eb;padding-bottom:8px}.doc-page p{margin:7px 0}.doc-page .doc-table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px}.doc-page .doc-table td{border:1px solid #d1d5db;color:#111827;padding:5px 7px;background:#fff}.doc-page img{max-width:100%;height:auto;border:1px solid #e5e7eb;border-radius:5px;margin:8px 0}.slide-card{background:#fff;color:#111827;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.32);max-width:980px;margin:0 auto 18px;padding:22px;font-family:Calibri,Arial,sans-serif}.slide-card h3{margin:0 0 12px;color:#0f172a;border-bottom:1px solid #e5e7eb;padding-bottom:8px}.slide-text{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:10px;color:#0f172a}.doc-hit{background:#fde047;color:#111827;border-radius:3px;padding:0 2px}.doc-empty{padding:24px;text-align:center;color:#cbd5e1;border:1px dashed #475569;border-radius:14px;background:#020617}.doc-meta{font-size:12px;color:#cbd5e1;line-height:1.45;padding:8px 12px;border-bottom:1px solid var(--line);background:#020617;white-space:pre-wrap;min-height:34px;flex:0 0 auto}
+
+    .header-grid{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+    .header-main{min-width:260px;flex:1 1 520px}
+    .pwa-controls{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap;max-width:560px}
+    .pwa-status{font-size:12px;color:#cbd5e1;line-height:1.35;min-width:220px;text-align:right}
+    .sidebar-app{padding:14px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,rgba(15,23,42,.98),rgba(2,6,23,.72));}
+    .sidebar-app h1{font-size:17px;line-height:1.25;margin:0 0 7px;color:#fff}
+    .sidebar-app .sub{font-size:12px;color:#cbd5e1;line-height:1.42}
+    .sidebar-app .pwa-controls{max-width:none;justify-content:flex-start;margin-top:10px;gap:7px}
+    .sidebar-app .pwa-controls button{padding:7px 9px;font-size:12px;border-radius:8px}
+    .sidebar-app .pwa-status{text-align:left;width:100%;min-width:0;color:#93c5fd}
+    .sidebar-divider{height:1px;background:rgba(51,65,85,.75);margin-top:10px}
+    main{grid-template-areas:"left viewer";}
+    main > .card:first-child{grid-area:left;}
+    main > .viewer-card{grid-area:viewer;display:flex;flex-direction:column;}
+    .viewer-control-panel{padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(2,6,23,.42);flex:0 0 auto}
+    .viewer-control-panel .sheet-controls{grid-template-columns:minmax(220px,340px) auto;align-items:end}
+    .viewer-control-panel .doc-controls{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+    .control-title{font-size:12px;color:#bae6fd;font-weight:800;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
+    .viewer-head{align-items:flex-start}
+    .viewer-head-main{min-width:260px;flex:1 1 360px}
+    .viewer-actions{justify-content:flex-end}
+    @media(max-width:900px){
+      .pwa-controls{justify-content:flex-start}.pwa-status{text-align:left;min-width:0;width:100%}
+      main{grid-template-areas:"left" "viewer";grid-template-columns:1fr;}
+      .viewer-control-panel .sheet-controls{grid-template-columns:1fr}
+      .viewer-control-panel .doc-controls{grid-template-columns:1fr}
+      .pane-tabs{border-radius:14px;flex-wrap:wrap;overflow:visible}.pane-tabs .tabbtn{flex:1 1 120px;min-width:0}
+    }
+
+
+    /* Bố cục mở rộng vùng xem */
+    .viewer-display-actions{display:none!important}
+    .viewer-title-row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .title-inline-actions{display:flex;gap:6px;align-items:center;margin-left:auto;flex:0 0 auto}
+    .title-inline-actions .btn2{padding:5px 8px;border-radius:8px;font-size:12px;line-height:1.1;white-space:nowrap}
+    body.sidebar-hidden main{grid-template-columns:minmax(0,1fr)!important;grid-template-areas:"viewer"!important}
+    body.sidebar-hidden main > .card:first-child{display:none!important}
+    body.sidebar-hidden main > .viewer-card{grid-area:viewer!important;grid-column:1 / -1!important;width:100%!important;min-width:0}
+    .viewer-card.controls-minimized .viewer-actions,
+    .viewer-card.controls-minimized #codeToolbar,
+    .viewer-card.controls-minimized #sheetControlBar,
+    .viewer-card.controls-minimized #docControlBar,
+    .viewer-card.controls-minimized #textControlBar,
+    .viewer-card.controls-minimized #keywordPanel,
+    .viewer-card.controls-minimized #editBar{display:none!important}
+    .viewer-card.controls-minimized .viewer-head{padding:7px 10px}
+    .viewer-card.controls-minimized .viewerMeta{display:none}
+    .viewer-card.controls-minimized .code-wrap{min-height:0}
+    .viewer-card.controls-minimized #sheetPane .sheet-topbar,
+    .viewer-card.controls-minimized #docPane .doc-topbar,
+    .viewer-card.controls-minimized #textPane .text-topbar,
+    .viewer-card.controls-minimized #securityPane .security-topbar{display:none!important}
+    .viewer-card.controls-minimized #textControlBar{display:none!important}
+    .compact-tip{font-size:11px;color:#93c5fd;white-space:nowrap}
+
+    /* Tab kiểm tra file */
+    .security-pane{flex:1 1 auto;min-height:0;background:#07111f;display:flex;flex-direction:column;width:100%;overflow:hidden}
+    .security-pane.hidden{display:none!important}
+    .security-topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(15,23,42,.88);flex:0 0 auto}
+    .security-view-wrap{padding:14px;overflow:auto;flex:1 1 auto;background:#07111f}
+    .risk-cards{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:10px;margin-bottom:12px}
+    .risk-card{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:12px;min-height:84px}
+    .risk-card b{display:block;font-size:20px;margin-top:5px;color:#fff}.risk-card span{font-size:12px;color:#9ca3af}
+    .risk-low{border-color:rgba(34,197,94,.5);box-shadow:0 0 0 1px rgba(34,197,94,.08) inset}.risk-low b{color:#86efac}
+    .risk-med{border-color:rgba(245,158,11,.55);box-shadow:0 0 0 1px rgba(245,158,11,.08) inset}.risk-med b{color:#fbbf24}
+    .risk-high{border-color:rgba(239,68,68,.65);box-shadow:0 0 0 1px rgba(239,68,68,.10) inset}.risk-high b{color:#fca5a5}
+    .risk-critical{border-color:rgba(220,38,38,.95);box-shadow:0 0 0 1px rgba(220,38,38,.16) inset}.risk-critical b{color:#fecaca}
+    .finding-table{width:100%;border-collapse:collapse;font-size:12px;background:#020617;border:1px solid #334155;border-radius:12px;overflow:hidden}
+    .finding-table th,.finding-table td{border-bottom:1px solid #1f2937;padding:8px;vertical-align:top;text-align:left}
+    .finding-table th{background:#111827;color:#cbd5e1;position:sticky;top:0;z-index:1}
+    .sev{display:inline-block;border-radius:999px;padding:2px 7px;font-size:11px;font-weight:800;white-space:nowrap}.sev.info{background:#1e293b;color:#cbd5e1}.sev.low{background:rgba(34,197,94,.14);color:#86efac}.sev.medium{background:rgba(245,158,11,.14);color:#fbbf24}.sev.high{background:rgba(239,68,68,.18);color:#fca5a5}.sev.critical{background:rgba(220,38,38,.25);color:#fecaca}
+    .finding-sample{max-width:620px;white-space:pre-wrap;word-break:break-word;color:#cbd5e1;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+    .security-empty{padding:30px;text-align:center;color:#9ca3af}
+
+    .text-control-panel{border-bottom:1px solid var(--line);background:#020617;flex:0 0 auto;padding:10px 12px}
+    .text-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .text-pane{height:100%;min-height:0;display:flex;flex-direction:column;background:#020617}
+    .text-topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #334155;background:#0f172a;flex:0 0 auto}
+    .text-meta{font-size:12px;color:#cbd5e1;line-height:1.45;padding:8px 12px;border-bottom:1px solid var(--line);background:#020617;white-space:pre-wrap;min-height:34px;flex:0 0 auto}
+    .text-view-wrap{min-height:0;flex:1 1 auto;overflow:auto;background:#020617}
+    .text-viewer{margin:0;color:#d1d5db;overflow:auto;padding:14px;font-family:Consolas,"Courier New",monospace;font-size:12.5px;line-height:1.45;tab-size:2;min-height:100%;width:100%;white-space:pre-wrap;word-break:break-word;background:#020617}
+    .text-hit{background:#fde047;color:#111827;border-radius:3px;padding:0 2px}.text-hit-active{outline:2px solid #f97316}
+    .text-empty{padding:30px;text-align:center;color:#9ca3af;border:1px dashed #475569;border-radius:14px;background:#020617;margin:12px}
+    .decode-note{font-size:12px;color:#cbd5e1;white-space:pre-wrap;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px 10px;line-height:1.45}
+    @media (max-width:900px){.risk-cards{grid-template-columns:repeat(2,minmax(120px,1fr))}.viewer-display-actions{margin-left:0}.compact-tip{width:100%}}
+
+  </style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <div class="sidebar-app">
+      <h1>Đọc/Sửa VBA + Xem Sheet/Document/Text + Kiểm tra file offline</h1>
+      <div class="sub">Chạy hoàn toàn trên trình duyệt, không chạy macro. Hỗ trợ Office macro, Word/PowerPoint, Sheet Excel và file text/script như .txt/.csv/.vbs/.vbe/.bat/.cmd/.ps1 để phân tích offline.</div>
+      <div class="pwa-controls">
+        <button class="btn2" id="btnInstallPwa" onclick="installPwaApp()" disabled>Cài PWA</button>
+        <button class="btnwarn" id="btnManualUpdate" onclick="checkPwaUpdate()">Kiểm tra cập nhật</button>
+        <div class="pwa-status" id="pwaStatus">PWA: đang khởi tạo...</div>
+      </div>
+    </div>
+    <h2>1. Chọn file</h2>
+    <div class="body">
+      <label class="drop" id="dropZone" for="fileInput">
+        <b>Kéo thả file vào đây hoặc bấm để chọn</b>
+        <span>.xlsm / .xlam / .xlsb / .docx / .pptx / .txt / .csv / .vbs / .vbe / .bat / .cmd / .ps1 / .reg / .js</span>
+      </label>
+      <input type="file" id="fileInput" accept=".xlsm,.xlam,.xlsb,.docx,.docm,.dotm,.pptx,.pptm,.ppam,.potm,.xlsx,.xls,.xla,.doc,.dot,.txt,.csv,.log,.ini,.cfg,.json,.xml,.html,.htm,.vbs,.vbe,.wsf,.wsc,.bat,.cmd,.ps1,.psm1,.psd1,.reg,.js,.jse,.hta,.sql">
+      <div class="row mt">
+        <button class="btn2" onclick="clearAll()">Xóa kết quả</button>
+        <button class="btn2" id="btnBin" onclick="downloadVbaBin()" disabled>Tải vbaProject.bin</button>
+      </div>
+      <div id="status" class="status mt">Chưa chọn file.</div>
+      <div class="warnbox mt">
+        Lưu ý: công cụ này chỉ đọc tĩnh mã VBA và không chạy macro. Nếu file bị mã hóa bằng mật khẩu mở file thì không thể đọc nội dung. Nếu chỉ khóa VBA Project bằng password, công cụ có thể hỗ trợ khôi phục làm việc bằng cách trích mã/xuất gói import, nhưng không đọc hoặc phá mật khẩu gốc.
+      </div>
+    </div>
+
+    <h2>2. Tóm tắt</h2>
+    <div class="body">
+      <div id="summary" class="kv small"><div>Trạng thái</div><div>Chưa có dữ liệu.</div></div>
+      <div id="chips" class="chips mt"></div>
+    </div>
+
+    <h2>3. Danh sách module</h2>
+    <div class="body">
+      <input class="search" id="filterInput" placeholder="Lọc module/từ khóa..." oninput="renderModules()">
+      <div id="moduleList" class="module-list mt"><div class="module-item"><div class="module-meta">Chưa có module.</div></div></div>
+      <div class="row mt">
+        <button class="btnok" id="btnZip" onclick="downloadAllZip()" disabled>Xuất ZIP mã VBA</button>
+        <button class="btnwarn" id="btnReport" onclick="downloadReport()" disabled>Xuất báo cáo TXT</button>
+      </div>
+    </div>
+
+    <h2>4. Sửa mã & cập nhật file</h2>
+    <div class="body">
+      <div class="small">Ba chức năng đã thêm: sửa module trên HTML, xuất lại <code>vbaProject.bin</code>, và tạo file Office mới đã thay mã VBA. File gốc không bị ghi đè.</div>
+      <div class="row mt">
+        <button class="btnwarn" id="btnEdit" onclick="enterEditMode()" disabled>Sửa module đang mở</button>
+        <button class="btnok" id="btnSaveEdit" onclick="saveEditMode()" disabled>Lưu sửa trong bộ nhớ</button>
+        <button class="btn2" id="btnCancelEdit" onclick="cancelEditMode()" disabled>Hủy sửa</button>
+        <button class="btnbad" id="btnRevertModule" onclick="revertCurrentModule()" disabled>Hoàn nguyên module</button>
+      </div>
+      <div class="row mt">
+        <button class="btn2" id="btnDownloadEditedModule" onclick="downloadCurrentModule()" disabled>Tải module đang mở</button>
+        <button class="btnok" id="btnEditedZip" onclick="downloadAllZip()" disabled>Xuất ZIP module hiện tại</button>
+      </div>
+      <div class="row mt">
+        <button class="btnwarn" id="btnBuildBin" onclick="downloadModifiedVbaBin()" disabled>Tạo vbaProject.bin đã sửa</button>
+        <button class="btnok" id="btnBuildOffice" onclick="downloadModifiedOfficeFile()" disabled>Tạo file Excel/Office mới</button>
+      </div>
+      <label class="checkline mt"><input type="checkbox" id="removeSignature" checked> Khi tạo file Office mới: xóa <code>vbaProjectSignature.bin</code> và quan hệ chữ ký vì chữ ký sẽ mất hiệu lực sau khi sửa VBA</label>
+      <div id="writeLog" class="write-log mt">Chưa có thay đổi nào trong bộ nhớ.</div>
+      <div class="warnbox mt">Không nên đổi dòng <code>Attribute VB_Name</code>. Bản ghi trực tiếp hiện dùng chế độ an toàn: chỉ ghi được khi stream mới vừa trong vùng lưu trữ hiện có của <code>vbaProject.bin</code>; nếu mã mới quá dài, công cụ sẽ báo lỗi để tránh làm hỏng file.</div>
+    </div>
+
+    <h2>5. Khôi phục làm việc khi quên mật khẩu VBAProject</h2>
+    <div class="body">
+      <div class="safe-note">
+        Chế độ này không đọc/phá mật khẩu cũ. Nó giúp người dùng có quyền với file lấy lại mã VBA để bảo trì: xuất module, xuất báo cáo, tạo gói import vào workbook/add-in mới, và làm sạch chữ ký VBA đã mất hiệu lực sau khi sửa mã.
+      </div>
+      <div class="row mt">
+        <button class="btnok" id="btnRecoveryZip" onclick="downloadRecoveryPack()" disabled>Xuất gói khôi phục đầy đủ</button>
+        <button class="btnwarn" id="btnImportGuide" onclick="downloadImportGuide()" disabled>Tải hướng dẫn khôi phục</button>
+        <button class="btn2" id="btnCleanSignatureOffice" onclick="downloadSignatureCleanOffice()" disabled>Tạo bản bỏ chữ ký VBA</button>
+      </div>
+      <label class="checkline mt"><input type="checkbox" id="includeVbaBinInRecovery"> Kèm <code>vbaProject.bin</code> gốc trong gói khôi phục để lưu trữ nội bộ</label>
+      <div id="recoveryPanel" class="recovery-panel mt">Chưa có dữ liệu bảo vệ VBAProject.</div>
+      <div class="warnbox mt">Nếu có module kiểu <code>ThisWorkbook</code>, <code>Sheet</code> hoặc <code>UserForm</code>, việc import tự động có thể chưa phục hồi hoàn toàn giao diện/form. Khi đó hãy dùng mã đã xuất để dán lại thủ công vào đúng object module trong Excel/VBA Editor.</div>
+    </div>
+  </section>
+
+  <section class="card viewer-card">
+    <div class="viewer-head">
+      <div class="viewer-head-main">
+        <div class="viewer-title-row">
+          <div class="viewer-title" id="viewerTitle">Chưa chọn module</div>
+          <div class="title-inline-actions">
+            <button class="btn2" id="btnToggleViewerControls" onclick="toggleViewerControls()" title="Ẩn/hiện các thanh điều khiển để nhường vùng xem">Ẩn ĐK</button>
+            <button class="btn2" id="btnToggleSidebar" onclick="toggleSidebar()" title="Ẩn/hiện thanh bên trái và mở rộng vùng xem">Ẩn bên</button>
+          </div>
+        </div>
+        <div class="small" id="viewerMeta">Mã VBA sẽ hiển thị tại đây.</div>
+      </div>
+      <div class="pane-tabs">
+        <button class="tabbtn active" id="tabVba" onclick="showPane('vba')">Mã VBA</button>
+        <button class="tabbtn" id="tabSheet" onclick="showPane('sheet')" disabled>Xem Sheet</button>
+        <button class="tabbtn" id="tabDoc" onclick="showPane('doc')" disabled>Xem Document</button>
+        <button class="tabbtn" id="tabText" onclick="showPane('text')" disabled>Xem Text/Script</button>
+        <button class="tabbtn" id="tabSecurity" onclick="showPane('security')" disabled>Kiểm tra file</button>
+      </div>
+      <div class="row viewer-actions">
+        <button class="btnwarn" id="btnEditTop" onclick="enterEditMode()" disabled>Sửa mã</button>
+        <button class="btn2" id="btnCopy" onclick="copyCurrent()" disabled>Copy mã</button>
+        <button class="btn2" id="btnOne" onclick="downloadCurrentModule()" disabled>Tải module</button>
+      </div>
+    </div>
+    <div id="sheetControlBar" class="viewer-control-panel hidden">
+      <div class="control-title">Điều khiển xem Sheet offline</div>
+      <div class="body sheet-controls" style="padding:0">
+        <label>Chọn sheet
+          <select class="select" id="sheetSelect" onchange="selectSheetByIndex(this.value)" disabled>
+            <option>Chưa có workbook</option>
+          </select>
+        </label>
+        <div class="row">
+          <button class="btn2" onclick="showPane('sheet')">Mở vùng xem sheet</button>
+          <button class="btn2" id="btnExportSheetCsv" onclick="downloadCurrentSheetCsv()" disabled>Xuất CSV sheet</button>
+          <label class="checkline"><input type="checkbox" id="showFormulas" onchange="renderCurrentSheet()"> Hiển thị công thức</label>
+          <label class="checkline"><input type="checkbox" id="limitSheetRender" onchange="renderCurrentSheet()" checked> Giới hạn hiển thị</label>
+        </div>
+        <div class="row" style="grid-column:1 / -1">
+          <input class="search" id="sheetSearchInput" placeholder="Tìm trong sheet..." oninput="renderCurrentSheet()">
+          <input class="search" id="maxRowsInput" type="number" min="10" max="5000" step="10" value="300" title="Số dòng tối đa" onchange="renderCurrentSheet()" style="min-width:110px;max-width:130px">
+          <input class="search" id="maxColsInput" type="number" min="5" max="300" step="5" value="80" title="Số cột tối đa" onchange="renderCurrentSheet()" style="min-width:110px;max-width:130px">
+        </div>
+        <div id="sheetInfo" class="status" style="grid-column:1 / -1">Chưa đọc được sheet.</div>
+        <div class="sheet-warning" style="grid-column:1 / -1">Chế độ xem sheet không chạy công thức và không dùng thư viện ngoài. Công thức sẽ hiển thị giá trị đã được Excel lưu sẵn trong file; nếu file chưa được tính/lưu lại, giá trị có thể trống hoặc cũ.</div>
+      </div>
+    </div>
+    <div id="docControlBar" class="viewer-control-panel hidden">
+      <div class="control-title">Điều khiển xem Word / PowerPoint offline</div>
+      <div class="doc-controls">
+        <button class="btn2" onclick="showPane('doc')">Mở vùng xem Document</button>
+        <input class="search" id="docSearchInput" placeholder="Tìm trong Word/PowerPoint..." oninput="renderDocumentPane()">
+        <button class="btn2" id="btnExportDocText" onclick="downloadDocumentText()" disabled>Xuất TXT document</button>
+      </div>
+      <div id="docInfo" class="status mt">Chưa đọc được Word/PowerPoint.</div>
+    </div>
+    <div id="textControlBar" class="viewer-control-panel text-control-panel hidden">
+      <div class="control-title">Điều khiển xem Text / Script offline</div>
+      <div class="text-controls">
+        <button class="btn2" onclick="showPane('text')">Mở vùng xem Text</button>
+        <label>Phiên bản
+          <select class="select" id="textVariantSelect" onchange="selectTextVariant(this.value)" disabled>
+            <option>Chưa có file text</option>
+          </select>
+        </label>
+        <input class="search" id="textSearchInput" placeholder="Tìm trong text/script..." oninput="renderTextPane()" onkeydown="handleTextSearchKey(event)">
+        <button class="btn2" id="btnPrevTextMatch" onclick="jumpTextMatch(-1)" disabled>↑ Trước</button>
+        <button class="btn2" id="btnNextTextMatch" onclick="jumpTextMatch(1)" disabled>↓ Sau</button>
+        <span class="match-count" id="textMatchCount">0/0</span>
+        <button class="btn2" id="btnExportText" onclick="downloadTextVariant()" disabled>Xuất TXT đang xem</button>
+        <button class="btnwarn" id="btnExportTextAll" onclick="downloadAllTextVariants()" disabled>Xuất ZIP giải mã</button>
+      </div>
+      <div id="textDecodeInfo" class="decode-note mt">Chưa có file text/script để giải mã.</div>
+    </div>
+    <div class="code-toolbar" id="codeToolbar">
+      <input class="search" id="codeSearchInput" placeholder="Tìm trong mã VBA đang mở..." oninput="updateCodeHighlight(true)" onkeydown="handleSearchKey(event)">
+      <button class="btn2" id="btnPrevMatch" onclick="jumpMatch(-1)" disabled>↑ Trước</button>
+      <button class="btn2" id="btnNextMatch" onclick="jumpMatch(1)" disabled>↓ Sau</button>
+      <span class="match-count" id="matchCount">0/0</span>
+      <select class="select" id="highlightColor" onchange="updateCodeHighlight(false)">
+        <option value="yellow">Vàng</option>
+        <option value="green">Xanh</option>
+        <option value="red">Đỏ</option>
+        <option value="blue">Xanh dương</option>
+        <option value="purple">Tím</option>
+      </select>
+      <label class="checkline"><input type="checkbox" id="caseSensitive" onchange="updateCodeHighlight(true)"> Phân biệt hoa/thường</label>
+      <label class="checkline"><input type="checkbox" id="markSuspicious" onchange="updateCodeHighlight(false)" checked> Đánh dấu từ khóa chú ý</label>
+    </div>
+    <div id="keywordPanel" class="body hidden"></div>
+    <div id="editBar" class="editbar">
+      <span class="small"><span class="dirtydot"></span>Đang sửa mã module. Bấm “Lưu sửa trong bộ nhớ” để áp dụng trước khi xuất file.</span>
+      <button class="btnok" onclick="saveEditMode()">Lưu sửa trong bộ nhớ</button>
+      <button class="btn2" onclick="cancelEditMode()">Hủy</button>
+    </div>
+    <div class="code-wrap">
+      <textarea id="codeEditor" class="code-edit hidden" spellcheck="false"></textarea>
+      <pre id="codeViewer" class="hidden"></pre>
+      <div id="sheetPane" class="sheet-pane hidden">
+        <div class="sheet-topbar">
+          <button class="btn2" onclick="fitSheetToScreen()">Vừa màn hình</button>
+          <button class="btn2" onclick="renderCurrentSheet()">Làm mới sheet</button>
+          <span class="small" id="sheetPaneTitle">Chưa chọn sheet</span>
+        </div>
+        <div id="cellInfo" class="cell-info">Bấm vào một ô để xem địa chỉ, giá trị và công thức.</div>
+        <div id="sheetGridWrap" class="sheet-grid-wrap"><div class="sheet-empty">Chưa có sheet để hiển thị.</div></div>
+      </div>
+      <div id="docPane" class="doc-pane hidden">
+        <div class="doc-topbar">
+          <button class="btn2" onclick="renderDocumentPane()">Làm mới document</button>
+          <button class="btn2" onclick="downloadDocumentText()">Xuất TXT</button>
+          <span class="small" id="docPaneTitle">Chưa có document</span>
+        </div>
+        <div id="docMeta" class="doc-meta">Chọn file Word hoặc PowerPoint để xem nội dung.</div>
+        <div id="docViewWrap" class="doc-view-wrap"><div class="doc-empty">Chưa có document để hiển thị.</div></div>
+      </div>
+      <div id="textPane" class="text-pane hidden">
+        <div class="text-topbar">
+          <button class="btn2" onclick="renderTextPane()">Làm mới text</button>
+          <button class="btn2" onclick="downloadTextVariant()">Xuất TXT</button>
+          <button class="btnwarn" onclick="downloadAllTextVariants()">Xuất ZIP tất cả bản giải mã</button>
+          <span class="small" id="textPaneTitle">Chưa có text/script</span>
+        </div>
+        <div id="textMeta" class="text-meta">Chọn file text/script để xem và giải mã tĩnh.</div>
+        <div id="textViewWrap" class="text-view-wrap"><div class="text-empty">Chưa có file text/script để hiển thị.</div></div>
+      </div>
+      <div id="securityPane" class="security-pane hidden">
+        <div class="security-topbar">
+          <button class="btn2" onclick="renderSecurityPane()">Làm mới kiểm tra</button>
+          <button class="btn2" id="btnSecurityReport" onclick="downloadSecurityReport()" disabled>Xuất báo cáo an toàn</button>
+          <input class="search" id="securitySearchInput" placeholder="Lọc kết quả kiểm tra..." oninput="renderSecurityPane()">
+          <select class="select" id="securitySeverityFilter" onchange="renderSecurityPane()">
+            <option value="all">Tất cả mức</option>
+            <option value="critical">Rất cao</option>
+            <option value="high">Cao</option>
+            <option value="medium">Trung bình</option>
+            <option value="low">Thấp</option>
+            <option value="info">Thông tin</option>
+          </select>
+          <span class="small">Phân tích tĩnh, không chạy macro.</span>
+        </div>
+        <div id="securityViewWrap" class="security-view-wrap"><div class="security-empty">Chọn file rồi mở tab Kiểm tra file.</div></div>
+      </div>
+      <div id="emptyViewer" class="code-empty">Chọn file để bắt đầu phân tích.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+const FREE = 0xFFFFFFFF;
+const END  = 0xFFFFFFFE;
+let currentResult = null;
+let currentIndex = -1;
+let currentObjectUrl = null;
+let currentMatches = [];
+let activeMatchIndex = -1;
+let lastSearchText = '';
+let editMode = false;
+let lastModifiedBinCache = null;
+let lastModifiedBinKey = '';
+let activePane = 'vba';
+let currentSheetIndex = 0;
+let currentTextVariantIndex = 0;
+let textMatches = [];
+let activeTextMatchIndex = -1;
+const encoderMapCache = {};
+const CFB_WRITE_MAX_GROWTH_NOTICE = 'Mã mới vượt quá vùng lưu trữ hiện có trong vbaProject.bin. Hãy rút gọn module hoặc dùng Excel/VBA Editor để import lại module.';
+
+const suspiciousRules = [
+  {re:/\bAuto_Open\b|\bWorkbook_Open\b|\bDocument_Open\b|\bAutoOpen\b/i, label:'Tự chạy khi mở file'},
+  {re:/\bApplication\.Run\b/i, label:'Gọi macro động'},
+  {re:/\bShell\b|WScript\.Shell|cmd\.exe|powershell|PowerShell/i, label:'Gọi lệnh hệ thống'},
+  {re:/CreateObject\s*\(/i, label:'Tạo COM Object'},
+  {re:/XMLHTTP|WinHttp|URLDownloadToFile|MSXML2/i, label:'Kết nối web/tải dữ liệu'},
+  {re:/ADODB\.Stream/i, label:'Ghi/đọc stream nhị phân'},
+  {re:/FileSystemObject|\bKill\b|\bRmDir\b|\bMkDir\b|\bOpen\s+.+\s+For\s+(Output|Binary|Append)/i, label:'Thao tác file/thư mục'},
+  {re:/Declare\s+(PtrSafe\s+)?(Function|Sub)|FindWindow|SetWindowPos|kernel32|user32/i, label:'Gọi Windows API'},
+  {re:/VBProject|VBComponents|CodeModule/i, label:'Tự sửa VBA project'},
+  {re:/Environ\s*\(|GetObject\s*\(/i, label:'Đọc môi trường hoặc lấy COM hiện có'}
+];
+
+function $(id){ return document.getElementById(id); }
+function setStatus(text, cls=''){ const el=$('status'); el.className='status mt '+cls; el.textContent=text; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function safeName(s){ return (s || 'module').replace(/[\\/:*?"<>|\x00-\x1F]/g,'_').slice(0,120) || 'module'; }
+function u16(a,o){ return a[o] | (a[o+1]<<8); }
+function u32(a,o){ return (a[o] | (a[o+1]<<8) | (a[o+2]<<16) | (a[o+3]<<24)) >>> 0; }
+function putU16(a,o,v){ a[o]=v&255; a[o+1]=(v>>>8)&255; }
+function putU32(a,o,v){ a[o]=v&255; a[o+1]=(v>>>8)&255; a[o+2]=(v>>>16)&255; a[o+3]=(v>>>24)&255; }
+function concatArrays(parts){ const len=parts.reduce((n,p)=>n+p.length,0); const out=new Uint8Array(len); let off=0; for(const p of parts){ out.set(p,off); off+=p.length; } return out; }
+function toUint8(x){ return x instanceof Uint8Array ? x : new Uint8Array(x); }
+function utf8Bytes(s){ return new TextEncoder().encode(s); }
+function decodeUtf8(bytes){ return new TextDecoder('utf-8',{fatal:false}).decode(bytes); }
+function decodeUtf16LE(bytes){ return new TextDecoder('utf-16le',{fatal:false}).decode(bytes); }
+
+function normalizeCfbName(name){ return String(name||'').toLowerCase(); }
+function getCfbStream(cfb, name){
+  const key=normalizeCfbName(name);
+  return (cfb && cfb.streams || []).find(s=>normalizeCfbName(s.name)===key) || null;
+}
+function decodeMostlyText(bytes, codePage){
+  if(!bytes) return '';
+  let txt=decodeByCodePage(bytes, codePage || 1252);
+  txt=txt.replace(/\u0000/g,'');
+  return txt;
+}
+function detectVbaProjectStatus(result){
+  const cfb=result.cfb || {streams:[]};
+  const streams=cfb.streams || [];
+  const names=streams.map(s=>s.name || '');
+  const lower=names.map(normalizeCfbName);
+  const project=getCfbStream(cfb,'PROJECT');
+  const projectwm=getCfbStream(cfb,'PROJECTwm');
+  const vbaProject=getCfbStream(cfb,'_VBA_PROJECT');
+  const projectText=project ? decodeMostlyText(project.data, result.codePage || 1252) : '';
+  const hasDPB=/^\s*DPB\s*=\s*/mi.test(projectText);
+  const hasCMG=/^\s*CMG\s*=\s*/mi.test(projectText);
+  const hasGC=/^\s*GC\s*=\s*/mi.test(projectText);
+  const locked=hasDPB || hasCMG || hasGC;
+  const moduleDecls=[];
+  if(projectText){
+    for(const line of projectText.split(/\r\n|\n|\r/)){
+      const m=/^\s*(Module|Class|BaseClass|Document)\s*=\s*(.+)\s*$/i.exec(line);
+      if(m) moduleDecls.push(line.trim());
+    }
+  }
+  const sigEntries=(result.entries||[]).filter(e=>/vbaProjectSignature\.bin$/i.test(e.name));
+  const relEntries=(result.entries||[]).filter(e=>/vbaProject\.bin\.rels$/i.test(e.name));
+  const hasSignature=sigEntries.length>0;
+  const hasSrp=lower.some(n=>n.startsWith('__srp_'));
+  const hasEncryptedPackage=lower.includes('encryptedpackage') || lower.some(n=>n.includes('dataspaces'));
+  const hasProjectStream=!!project;
+  const hasProjectWm=!!projectwm;
+  const hasVbaProjectStream=!!vbaProject;
+  let risk='Bình thường';
+  if(hasEncryptedPackage) risk='Có dấu hiệu mã hóa file mở bằng mật khẩu';
+  else if(locked) risk='Có dấu hiệu khóa/mật khẩu VBAProject';
+  else if(hasProjectStream) risk='Không thấy dấu hiệu DPB/CMG/GC trong PROJECT stream';
+  else risk='Không thấy PROJECT stream để kết luận';
+  const advice=[];
+  if(hasEncryptedPackage) advice.push('File có dấu hiệu mã hóa toàn bộ; HTML không thể đọc VBA nếu không có mật khẩu mở file.');
+  if(locked) advice.push('Không đọc/phá mật khẩu cũ. Hãy dùng Xuất gói khôi phục để lấy module và import/dán vào file mới hoặc file đã được mở hợp lệ.');
+  if(hasSignature) advice.push('Có chữ ký VBA. Sau khi sửa mã, chữ ký sẽ mất hiệu lực; nên tạo bản mới và bỏ chữ ký cũ.');
+  if(!locked && hasProjectStream) advice.push('Không thấy dấu hiệu khóa VBAProject trong PROJECT stream; có thể bảo trì bằng Excel/VBA Editor hoặc bằng chức năng sửa/xuất của HTML.');
+  if((result.modules||[]).some(m=>/^(ThisWorkbook|Sheet\d+|Tabelle\d+|Feuil\d+|Diagramm\d+)/i.test(m.moduleName))) advice.push('Có object module dạng ThisWorkbook/Sheet/Chart; khi dựng file mới có thể cần dán thủ công vào đúng object module.');
+  if((result.modules||[]).some(m=>m.extension==='.frm.txt')) advice.push('Có dấu hiệu UserForm; HTML đang xuất code text, chưa đảm bảo phục hồi đầy đủ file .frx/giao diện form.');
+  return {hasProjectStream, hasProjectWm, hasVbaProjectStream, hasDPB, hasCMG, hasGC, locked, hasSignature, sigEntries:sigEntries.map(e=>e.name), relEntries:relEntries.map(e=>e.name), hasSrp, hasEncryptedPackage, moduleDecls, projectTextPreview:projectText.slice(0,4000), risk, advice};
+}
+function renderRecoveryPanel(){
+  const el=$('recoveryPanel');
+  if(!el) return;
+  if(!currentResult){ el.textContent='Chưa có dữ liệu bảo vệ VBAProject.'; return; }
+  const p=currentResult.protection || {};
+  const lines=[];
+  lines.push('TRẠNG THÁI BẢO VỆ / KHÔI PHỤC');
+  lines.push('--------------------------------');
+  lines.push('File: '+(currentResult.fileName||''));
+  lines.push('Dạng gói: '+(currentResult.packageType||''));
+  lines.push('Đường dẫn VBA: '+(currentResult.vbaPath||'Không có'));
+  lines.push('PROJECT stream: '+(p.hasProjectStream?'Có':'Không thấy'));
+  lines.push('_VBA_PROJECT stream: '+(p.hasVbaProjectStream?'Có':'Không thấy'));
+  lines.push('PROJECTwm stream: '+(p.hasProjectWm?'Có':'Không thấy'));
+  lines.push('Dấu hiệu DPB/CMG/GC: '+([p.hasDPB?'DPB':'',p.hasCMG?'CMG':'',p.hasGC?'GC':''].filter(Boolean).join(', ') || 'Không thấy'));
+  lines.push('Kết luận khóa VBAProject: '+(p.locked?'Có dấu hiệu khóa/mật khẩu VBAProject':'Chưa thấy dấu hiệu khóa trong PROJECT stream'));
+  lines.push('Chữ ký VBA: '+(p.hasSignature?'Có: '+p.sigEntries.join(', '):'Không thấy'));
+  lines.push('__SRP_* compiled streams: '+(p.hasSrp?'Có':'Không thấy'));
+  lines.push('Mã hóa/mật khẩu mở file: '+(p.hasEncryptedPackage?'Có dấu hiệu EncryptedPackage/DataSpaces':'Không thấy dấu hiệu trong phần đã đọc'));
+  lines.push('Số module trích được: '+((currentResult.modules||[]).length));
+  if(p.moduleDecls && p.moduleDecls.length){
+    lines.push('\nKhai báo module trong PROJECT stream:');
+    p.moduleDecls.slice(0,80).forEach(x=>lines.push('- '+x));
+    if(p.moduleDecls.length>80) lines.push('- ... còn '+(p.moduleDecls.length-80)+' dòng');
+  }
+  if(p.advice && p.advice.length){
+    lines.push('\nKhuyến nghị:');
+    p.advice.forEach(x=>lines.push('- '+x));
+  }
+  lines.push('\nLưu ý: công cụ không hiển thị, dò, phá hoặc gỡ mật khẩu VBAProject gốc. Mục tiêu là lấy lại mã để bảo trì hợp lệ và tạo gói phục hồi.');
+  el.textContent=lines.join('\n');
+}
+
+function decodeByCodePage(bytes, cp){
+  const map = {
+    65001:'utf-8', 1200:'utf-16le', 1250:'windows-1250', 1251:'windows-1251', 1252:'windows-1252',
+    1253:'windows-1253', 1254:'windows-1254', 1255:'windows-1255', 1256:'windows-1256',
+    1257:'windows-1257', 1258:'windows-1258', 932:'shift_jis', 936:'gbk', 949:'euc-kr', 950:'big5'
+  };
+  const enc = map[cp] || 'windows-1252';
+  try { return new TextDecoder(enc,{fatal:false}).decode(bytes); }
+  catch(e){ return new TextDecoder('windows-1252',{fatal:false}).decode(bytes); }
+}
+
+function encodingNameFromCodePage(cp){
+  const map={65001:'utf-8',1200:'utf-16le',1250:'windows-1250',1251:'windows-1251',1252:'windows-1252',1253:'windows-1253',1254:'windows-1254',1255:'windows-1255',1256:'windows-1256',1257:'windows-1257',1258:'windows-1258',932:'shift_jis',936:'gbk',949:'euc-kr',950:'big5'};
+  return map[cp] || 'windows-1252';
+}
+function buildEncoderMap(enc){
+  if(encoderMapCache[enc]) return encoderMapCache[enc];
+  const map=new Map();
+  let dec;
+  try{ dec=new TextDecoder(enc,{fatal:false}); }catch(e){ dec=new TextDecoder('windows-1252',{fatal:false}); }
+  for(let b=0;b<256;b++){
+    const ch=dec.decode(new Uint8Array([b]));
+    if(ch && ch !== '�' && !map.has(ch)) map.set(ch,b);
+  }
+  encoderMapCache[enc]=map;
+  return map;
+}
+function encodeByCodePage(text, cp){
+  if(cp===65001) return utf8Bytes(text);
+  if(cp===1200){
+    const out=new Uint8Array(text.length*2); let p=0;
+    for(let i=0;i<text.length;i++){ const c=text.charCodeAt(i); out[p++]=c&255; out[p++]=(c>>>8)&255; }
+    return out;
+  }
+  const enc=encodingNameFromCodePage(cp);
+  const map=buildEncoderMap(enc);
+  const out=[]; let replaced=0;
+  for(const ch of text){
+    if(map.has(ch)) out.push(map.get(ch));
+    else { out.push(63); replaced++; }
+  }
+  const arr=new Uint8Array(out);
+  arr.replacedChars=replaced;
+  return arr;
+}
+function compressVbaUncompressed(srcBytes){
+  srcBytes=toUint8(srcBytes);
+  const parts=[new Uint8Array([0x01])];
+  for(let pos=0; pos<srcBytes.length; ){
+    const len=Math.min(4096, srcBytes.length-pos);
+    const h=new Uint8Array(2);
+    const header=0x3000 | ((len-1) & 0x0FFF);
+    putU16(h,0,header); parts.push(h, srcBytes.slice(pos,pos+len)); pos+=len;
+  }
+  return concatArrays(parts);
+}
+function findBestVbaMatch(chunk, pos){
+  const diff=pos;
+  if(diff<3) return null;
+  const bitCount=Math.max(Math.ceil(Math.log2(Math.max(diff,1))),4);
+  const maxOffset=Math.min(diff, 1<<bitCount);
+  const lengthMask=0xFFFF >>> bitCount;
+  const maxLen=Math.min(chunk.length-pos, lengthMask+3);
+  let bestLen=0, bestOff=0;
+  const first=chunk[pos];
+  const start=Math.max(0,pos-maxOffset);
+  for(let j=pos-1;j>=start;j--){
+    if(chunk[j]!==first) continue;
+    let l=1;
+    while(l<maxLen && chunk[j+l]===chunk[pos+l]) l++;
+    if(l>bestLen){ bestLen=l; bestOff=pos-j; if(bestLen===maxLen) break; }
+  }
+  if(bestLen>=3) return {length:bestLen, offset:bestOff, bitCount};
+  return null;
+}
+function compressVbaChunkSmart(chunk){
+  const payload=[];
+  let pos=0;
+  while(pos<chunk.length){
+    const flagIndex=payload.length; payload.push(0);
+    let flags=0;
+    for(let bit=0; bit<8 && pos<chunk.length; bit++){
+      const m=findBestVbaMatch(chunk,pos);
+      if(m){
+        const lengthMask=0xFFFF >>> m.bitCount;
+        const token=((m.offset-1) << (16-m.bitCount)) | ((m.length-3) & lengthMask);
+        payload.push(token & 255, (token>>>8)&255);
+        flags |= (1<<bit); pos += m.length;
+      }else{
+        payload.push(chunk[pos++]);
+      }
+    }
+    payload[flagIndex]=flags;
+  }
+  return new Uint8Array(payload);
+}
+function compressVbaSmart(srcBytes){
+  srcBytes=toUint8(srcBytes);
+  const parts=[new Uint8Array([0x01])];
+  for(let pos=0; pos<srcBytes.length; ){
+    const raw=srcBytes.slice(pos,pos+Math.min(4096,srcBytes.length-pos));
+    const comp=compressVbaChunkSmart(raw);
+    const useComp=comp.length < raw.length;
+    const payload=useComp ? comp : raw;
+    const h=new Uint8Array(2);
+    const header=(useComp?0xB000:0x3000) | ((payload.length-1) & 0x0FFF);
+    putU16(h,0,header); parts.push(h,payload); pos+=raw.length;
+  }
+  return concatArrays(parts);
+}
+
+async function inflateRaw(data){
+  data = toUint8(data);
+  if (!('DecompressionStream' in window)) {
+    throw new Error('Trình duyệt chưa hỗ trợ DecompressionStream. Hãy dùng Chrome/Edge phiên bản mới để đọc file Office nén deflate.');
+  }
+  try {
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([data]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  } catch (e1) {
+    try {
+      const ds = new DecompressionStream('deflate');
+      const stream = new Blob([data]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (e2) {
+      throw new Error('Không giải nén được dữ liệu ZIP deflate: ' + e1.message);
+    }
+  }
+}
+
+function findEocd(bytes){
+  const min = Math.max(0, bytes.length - 0x10000 - 22);
+  for(let i=bytes.length-22;i>=min;i--){
+    if(u32(bytes,i) === 0x06054b50) return i;
+  }
+  return -1;
+}
+
+function parseZipCentralDirectory(bytes){
+  const eocd = findEocd(bytes);
+  if(eocd < 0) throw new Error('Không thấy End Of Central Directory. File không phải ZIP/OpenXML hợp lệ hoặc đang bị mã hóa.');
+  const total = u16(bytes,eocd+10);
+  const cdSize = u32(bytes,eocd+12);
+  const cdOffset = u32(bytes,eocd+16);
+  if(cdOffset === 0xFFFFFFFF || cdSize === 0xFFFFFFFF) throw new Error('ZIP64 chưa được hỗ trợ trong bản HTML này.');
+  const entries=[];
+  let p=cdOffset;
+  for(let i=0;i<total && p<bytes.length;i++){
+    if(u32(bytes,p)!==0x02014b50) throw new Error('Central directory ZIP bị lỗi tại offset '+p);
+    const flags=u16(bytes,p+8);
+    const method=u16(bytes,p+10);
+    const crc=u32(bytes,p+16);
+    const compSize=u32(bytes,p+20);
+    const uncompSize=u32(bytes,p+24);
+    const nameLen=u16(bytes,p+28), extraLen=u16(bytes,p+30), commentLen=u16(bytes,p+32);
+    const localOffset=u32(bytes,p+42);
+    const nameBytes=bytes.slice(p+46,p+46+nameLen);
+    let name;
+    try { name = (flags & 0x0800) ? decodeUtf8(nameBytes) : decodeUtf8(nameBytes); } catch(e){ name = Array.from(nameBytes).map(b=>String.fromCharCode(b)).join(''); }
+    entries.push({name,flags,method,crc,compSize,uncompSize,localOffset,encrypted:!!(flags&1)});
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return entries;
+}
+
+async function zipExtract(bytes, entry){
+  if(entry.encrypted) throw new Error('Entry trong ZIP đang bị mã hóa: '+entry.name);
+  const p=entry.localOffset;
+  if(u32(bytes,p)!==0x04034b50) throw new Error('Local file header ZIP bị lỗi: '+entry.name);
+  const nameLen=u16(bytes,p+26), extraLen=u16(bytes,p+28);
+  const dataStart=p+30+nameLen+extraLen;
+  const comp=bytes.slice(dataStart,dataStart+entry.compSize);
+  if(entry.method===0) return comp;
+  if(entry.method===8) return await inflateRaw(comp);
+  throw new Error('Chưa hỗ trợ phương thức nén ZIP method '+entry.method+' ở '+entry.name);
+}
+
+function isZip(bytes){ return bytes.length>4 && bytes[0]===0x50 && bytes[1]===0x4B; }
+function isCfb(bytes){ return bytes.length>8 && bytes[0]===0xD0 && bytes[1]===0xCF && bytes[2]===0x11 && bytes[3]===0xE0 && bytes[4]===0xA1 && bytes[5]===0xB1 && bytes[6]===0x1A && bytes[7]===0xE1; }
+
+function parseCfbStreams(input){
+  const data=toUint8(input);
+  if(!isCfb(data)) throw new Error('vbaProject.bin không phải OLE/CFB hợp lệ.');
+  const sectorShift=u16(data,0x1E), sectorSize=1<<sectorShift;
+  const miniSectorShift=u16(data,0x20), miniSectorSize=1<<miniSectorShift;
+  const miniCutoff=u32(data,0x38) || 4096;
+  const numFatSectors=u32(data,0x2C);
+  const firstDir=u32(data,0x30);
+  const firstMiniFat=u32(data,0x3C);
+  const numMiniFatSectors=u32(data,0x40);
+  const difat=[];
+  for(let i=0;i<109;i++){ const v=u32(data,0x4C+i*4); if(v!==FREE) difat.push(v); }
+  const warnings=[];
+  if(numFatSectors > 109) warnings.push('CFB có hơn 109 FAT sector; bản HTML này chỉ dùng DIFAT trong header nên có thể thiếu dữ liệu với file rất lớn.');
+  function secOffset(sec){ return (sec+1)*sectorSize; }
+  const fat=[];
+  for(const sec of difat){
+    const off=secOffset(sec);
+    if(off<0 || off+sectorSize>data.length) throw new Error('FAT sector vượt ngoài file: '+sec);
+    for(let p=off;p<off+sectorSize;p+=4) fat.push(u32(data,p));
+  }
+  function getFatChain(start){
+    if(start===FREE || start===END) return [];
+    const chain=[]; const seen=new Set(); let sec=start; let guard=0;
+    while(sec!==FREE && sec!==END){
+      if(seen.has(sec)) throw new Error('CFB FAT chain bị vòng lặp tại sector '+sec);
+      if(sec>=fat.length) throw new Error('CFB FAT sector ngoài bảng FAT: '+sec);
+      const off=secOffset(sec);
+      if(off<0 || off+sectorSize>data.length) throw new Error('CFB sector vượt ngoài file: '+sec);
+      seen.add(sec); chain.push(sec); sec=fat[sec];
+      if(++guard>200000) throw new Error('CFB FAT chain quá dài, dừng để tránh treo trình duyệt.');
+    }
+    return chain;
+  }
+  function readFatChain(start){
+    const parts=[];
+    for(const sec of getFatChain(start)){ const off=secOffset(sec); parts.push(data.slice(off,off+sectorSize)); }
+    return concatArrays(parts);
+  }
+  const dirData=readFatChain(firstDir);
+  const entries=[];
+  for(let off=0; off+128<=dirData.length; off+=128){
+    const e=dirData.slice(off,off+128);
+    const nameLen=u16(e,64);
+    let name='';
+    if(nameLen>=2 && nameLen<=64){ name=decodeUtf16LE(e.slice(0,nameLen-2)); }
+    const type=e[66];
+    const start=u32(e,116);
+    const sizeLow=u32(e,120);
+    const sizeHigh=u32(e,124);
+    const size=sizeHigh ? sizeLow + sizeHigh*0x100000000 : sizeLow;
+    entries.push({idx:off/128,name,type,start,size});
+  }
+  const root=entries[0] || {start:END,size:0};
+  const miniStream=readFatChain(root.start).slice(0,root.size || 0);
+  let miniFat=[];
+  if(firstMiniFat!==FREE && firstMiniFat!==END && numMiniFatSectors>0){
+    const miniFatData=readFatChain(firstMiniFat).slice(0,numMiniFatSectors*sectorSize);
+    for(let p=0;p+4<=miniFatData.length;p+=4) miniFat.push(u32(miniFatData,p));
+  }
+  function getMiniChain(start){
+    if(start===FREE || start===END) return [];
+    const chain=[]; const seen=new Set(); let sec=start; let guard=0;
+    while(sec!==FREE && sec!==END){
+      if(seen.has(sec)) throw new Error('CFB miniFAT chain bị vòng lặp tại mini sector '+sec);
+      if(sec>=miniFat.length) throw new Error('CFB mini sector ngoài miniFAT: '+sec);
+      seen.add(sec); chain.push(sec); sec=miniFat[sec];
+      if(++guard>200000) throw new Error('CFB miniFAT chain quá dài.');
+    }
+    return chain;
+  }
+  function readMiniChain(start){
+    const parts=[];
+    for(const sec of getMiniChain(start)){ const off=sec*miniSectorSize; parts.push(miniStream.slice(off,off+miniSectorSize)); }
+    return concatArrays(parts);
+  }
+  function readStream(ent){
+    if(ent.type!==2) return new Uint8Array(0);
+    if(ent.size < miniCutoff && miniFat.length){ return readMiniChain(ent.start).slice(0,ent.size); }
+    return readFatChain(ent.start).slice(0,ent.size);
+  }
+  const streams=[];
+  for(const ent of entries){
+    if(ent.type===2){
+      try { streams.push({name:ent.name, size:ent.size, start:ent.start, data:readStream(ent)}); }
+      catch(e){ warnings.push('Không đọc được stream '+ent.name+': '+e.message); }
+    }
+  }
+  return {entries, streams, warnings, sectorSize, miniSectorSize, miniCutoff, sourceData:data, fat, miniFat, root, firstDir, dirChain:getFatChain(firstDir), rootChain:getFatChain(root.start), getFatChain, getMiniChain, secOffset};
+}
+
+function decompressVba(comp, start=0){
+  comp=toUint8(comp);
+  if(comp[start] !== 0x01) throw new Error('Sai signature VBA compressed container.');
+  let pos=start+1;
+  const out=[];
+  const MAX_OUT=50*1024*1024;
+  while(pos+2 <= comp.length){
+    const headerPos=pos;
+    const header=u16(comp,pos); pos+=2;
+    if((header & 0x7000) !== 0x3000) throw new Error('Sai signature chunk VBA.');
+    const chunkSize=(header & 0x0FFF)+3;
+    const flag=(header & 0x8000) ? 1 : 0;
+    const chunkEnd=Math.min(headerPos+chunkSize, comp.length);
+    const chunkStart=out.length;
+    if(flag===0){
+      while(pos<chunkEnd){ out.push(comp[pos++]); if(out.length>MAX_OUT) throw new Error('Mã giải nén quá lớn.'); }
+    } else {
+      while(pos<chunkEnd){
+        const flags=comp[pos++];
+        for(let bit=0; bit<8; bit++){
+          if(pos>=chunkEnd) break;
+          if(((flags>>bit)&1)===0){
+            out.push(comp[pos++]);
+          } else {
+            if(pos+2>chunkEnd) throw new Error('Copy token thiếu dữ liệu.');
+            const token=u16(comp,pos); pos+=2;
+            const diff=out.length-chunkStart;
+            const bitCount=Math.max(Math.ceil(Math.log2(Math.max(diff,1))),4);
+            const lengthMask=0xFFFF >>> bitCount;
+            const length=(token & lengthMask)+3;
+            const offset=(token >>> (16-bitCount))+1;
+            let src=out.length-offset;
+            if(src<0) throw new Error('Copy token trỏ ra ngoài buffer.');
+            for(let i=0;i<length;i++){
+              out.push(out[src++]);
+              if(out.length>MAX_OUT) throw new Error('Mã giải nén quá lớn.');
+            }
+          }
+        }
+      }
+    }
+    if(pos < chunkEnd) pos=chunkEnd;
+  }
+  return new Uint8Array(out);
+}
+
+function detectCodePage(streams){
+  const dir = streams.find(s=>s.name === 'dir');
+  if(!dir) return {codePage:1252, dirDecoded:null};
+  try{
+    const dec=decompressVba(dir.data,0);
+    for(let i=0;i+8<=Math.min(dec.length,2048);i++){
+      if(u16(dec,i)===0x0003 && u32(dec,i+2)===2){ return {codePage:u16(dec,i+6), dirDecoded:dec}; }
+    }
+    return {codePage:1252, dirDecoded:dec};
+  }catch(e){ return {codePage:1252, dirDecoded:null, warning:'Không giải nén được stream dir: '+e.message}; }
+}
+
+function isSkippableStreamName(name){
+  if(!name) return true;
+  const n=name.toLowerCase();
+  if(name.charCodeAt(0)<32) return true;
+  if(n.startsWith('__srp_')) return true;
+  return ['dir','_vba_project','project','projectwm','projectlk'].includes(n);
+}
+
+function printableRatio(txt){
+  const n=Math.min(2000,txt.length); if(!n) return 0;
+  let ok=0;
+  for(let i=0;i<n;i++){
+    const c=txt.charCodeAt(i);
+    if(c===9 || c===10 || c===13 || (c>=32 && c!==65533)) ok++;
+  }
+  return ok/n;
+}
+
+function scanSuspicious(text){
+  const lines=text.split(/\r\n|\n|\r/);
+  const found=[];
+  for(const rule of suspiciousRules){
+    for(let i=0;i<lines.length;i++){
+      if(rule.re.test(lines[i])){
+        found.push({label:rule.label,line:i+1,sample:lines[i].trim().slice(0,180)});
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+function guessExtension(name, text){
+  if(/^userform/i.test(name) || /Attribute\s+VB_Base\s*=\s*/i.test(text)) return '.frm.txt';
+  if(/Attribute\s+VB_PredeclaredId\s*=\s*True/i.test(text) || /^(ThisWorkbook|Sheet\d+|Tabelle\d+|Feuil\d+|Diagramm\d+)/i.test(name)) return '.cls.txt';
+  return '.bas.txt';
+}
+
+function scanModules(streams, codePage){
+  const modules=[];
+  for(const s of streams){
+    if(isSkippableStreamName(s.name)) continue;
+    const raw=s.data;
+    if(!raw || raw.length<8) continue;
+    if(raw.length>20*1024*1024) continue;
+    let best=null, candidates=0;
+    for(let off=0; off<raw.length-3; off++){
+      if(raw[off] !== 0x01) continue;
+      candidates++;
+      if(candidates>12000) break;
+      try{
+        const dec=decompressVba(raw,off);
+        if(dec.length<10) continue;
+        let text=decodeByCodePage(dec, codePage);
+        const attrIdx=text.indexOf('Attribute VB_Name');
+        const subCount=(text.match(/\b(Sub|Function|Property)\s+[_A-Za-zÀ-ỹ][\wÀ-ỹ]*/gi)||[]).length;
+        let score=0;
+        if(attrIdx>=0) score+=30;
+        if(new RegExp('Attribute\\s+VB_Name\\s*=\\s*"'+escapeRegex(s.name)+'"','i').test(text)) score+=25;
+        if(/Option\s+Explicit/i.test(text)) score+=6;
+        score+=Math.min(subCount,20)*2;
+        score+=printableRatio(text)*8;
+        score+=Math.min((text.match(/\r\n|\n/g)||[]).length,200)/50;
+        if(attrIdx>0 && attrIdx<5000) text=text.slice(attrIdx);
+        if(!best || score>best.score) best={score,off,text,decodedBytes:dec.length};
+      }catch(e){ /* false candidate */ }
+    }
+    if(best && best.score>=12 && /Attribute\s+VB_Name|\b(Sub|Function|Property)\s+/i.test(best.text)){
+      const m=/Attribute\s+VB_Name\s*=\s*"([^"]+)"/i.exec(best.text);
+      const moduleName=m ? m[1] : s.name;
+      const suspicious=scanSuspicious(best.text);
+      modules.push({
+        streamName:s.name,
+        moduleName,
+        offset:best.off,
+        score:best.score,
+        lines:best.text.split(/\r\n|\n|\r/).length,
+        chars:best.text.length,
+        decodedBytes:best.decodedBytes,
+        text:best.text,
+        originalText:best.text,
+        isEdited:false,
+        suspicious,
+        extension:guessExtension(moduleName,best.text)
+      });
+    }
+  }
+  modules.sort((a,b)=>a.moduleName.localeCompare(b.moduleName,'vi'));
+  return modules;
+}
+function escapeRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+
+
+
+/* ======================= XEM SHEET EXCEL OFFLINE ======================= */
+function xmlDoc(text){
+  const doc=new DOMParser().parseFromString(text,'application/xml');
+  const err=doc.getElementsByTagName('parsererror')[0];
+  if(err) throw new Error('XML không hợp lệ: '+(err.textContent||'').slice(0,180));
+  return doc;
+}
+function localEls(root, name){ return Array.from(root.getElementsByTagName('*')).filter(e=>e.localName===name); }
+function localChildren(el, name){ return Array.from(el.children||[]).filter(e=>e.localName===name); }
+function attrAny(el, name){
+  if(!el) return '';
+  if(el.hasAttribute(name)) return el.getAttribute(name) || '';
+  for(const a of Array.from(el.attributes||[])){ if(a.localName===name) return a.value || ''; }
+  return '';
+}
+function entryByName(entries,name){ return (entries||[]).find(e=>e.name.toLowerCase()===String(name).toLowerCase()) || null; }
+function dirname(path){ const i=String(path).lastIndexOf('/'); return i>=0 ? path.slice(0,i+1) : ''; }
+function normalizeZipPath(path){
+  const parts=[];
+  for(const part of String(path).replace(/^\/+/, '').split('/')){
+    if(!part || part==='.') continue;
+    if(part==='..') parts.pop(); else parts.push(part);
+  }
+  return parts.join('/');
+}
+function resolvePartPath(sourcePart, target){
+  target=String(target||'');
+  if(target.startsWith('/')) return normalizeZipPath(target);
+  return normalizeZipPath(dirname(sourcePart)+target);
+}
+async function zipText(bytes, entries, path){
+  const e=entryByName(entries,path);
+  if(!e) return null;
+  const data=await zipExtract(bytes,e);
+  return decodeUtf8(data);
+}
+function colLabel(n){ let s=''; while(n>0){ const r=(n-1)%26; s=String.fromCharCode(65+r)+s; n=Math.floor((n-1)/26); } return s; }
+function colNumber(label){ let n=0; for(const ch of String(label).toUpperCase()){ if(ch<'A'||ch>'Z') break; n=n*26+(ch.charCodeAt(0)-64); } return n; }
+function splitAddr(addr){ const m=/^([A-Z]+)(\d+)$/i.exec(String(addr||'')); return m ? {col:colNumber(m[1]), row:parseInt(m[2],10), colLabel:m[1].toUpperCase()} : null; }
+function makeAddr(row,col){ return colLabel(col)+row; }
+function parseRefRange(ref){
+  const parts=String(ref||'').split(':');
+  const a=splitAddr(parts[0]); const b=splitAddr(parts[1] || parts[0]);
+  if(!a || !b) return null;
+  return {r1:Math.min(a.row,b.row), c1:Math.min(a.col,b.col), r2:Math.max(a.row,b.row), c2:Math.max(a.col,b.col)};
+}
+function sheetTextFromSi(si){ return localEls(si,'t').map(t=>t.textContent||'').join(''); }
+function indexedColor(idx){
+  const table=['#000000','#FFFFFF','#FF0000','#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','#000000','#FFFFFF','#FF0000','#00FF00','#0000FF','#FFFF00','#FF00FF','#00FFFF','#800000','#008000','#000080','#808000','#800080','#008080','#C0C0C0','#808080','#9999FF','#993366','#FFFFCC','#CCFFFF','#660066','#FF8080','#0066CC','#CCCCFF','#000080','#FF00FF','#FFFF00','#00FFFF','#800080','#800000','#008080','#0000FF','#00CCFF','#CCFFFF','#CCFFCC','#FFFF99','#99CCFF','#FF99CC','#CC99FF','#FFCC99','#3366FF','#33CCCC','#99CC00','#FFCC00','#FF9900','#FF6600','#666699','#969696','#003366','#339966','#003300','#333300','#993300','#993366','#333399','#333333'];
+  idx=parseInt(idx,10); return table[idx] || '';
+}
+function colorFromNode(node){
+  if(!node) return '';
+  const rgb=attrAny(node,'rgb');
+  if(rgb){ const s=rgb.replace(/^#?/,''); return '#'+(s.length===8?s.slice(2):s).slice(0,6); }
+  const indexed=attrAny(node,'indexed'); if(indexed!=='') return indexedColor(indexed);
+  return '';
+}
+function parseStylesXml(text){
+  const styles={fonts:[],fills:[],borders:[],xfs:[],numFmts:{}};
+  if(!text) return styles;
+  try{
+    const doc=xmlDoc(text);
+    for(const n of localEls(doc,'numFmt')) styles.numFmts[attrAny(n,'numFmtId')]=attrAny(n,'formatCode');
+    const fontsNode=localEls(doc,'fonts')[0];
+    for(const f of fontsNode ? localChildren(fontsNode,'font') : []){
+      const color=localChildren(f,'color')[0]; const sz=localChildren(f,'sz')[0]; const name=localChildren(f,'name')[0];
+      styles.fonts.push({bold:!!localChildren(f,'b').length, italic:!!localChildren(f,'i').length, underline:!!localChildren(f,'u').length, color:colorFromNode(color), size:attrAny(sz,'val'), name:attrAny(name,'val')});
+    }
+    const fillsNode=localEls(doc,'fills')[0];
+    for(const fill of fillsNode ? localChildren(fillsNode,'fill') : []){
+      const pat=localChildren(fill,'patternFill')[0]; const fg=pat ? localChildren(pat,'fgColor')[0] : null; const bg=pat ? localChildren(pat,'bgColor')[0] : null;
+      styles.fills.push({pattern:attrAny(pat,'patternType'), color:colorFromNode(fg) || colorFromNode(bg)});
+    }
+    const cellXfs=localEls(doc,'cellXfs')[0];
+    for(const xf of cellXfs ? localChildren(cellXfs,'xf') : []){
+      const al=localChildren(xf,'alignment')[0]; const numFmtId=attrAny(xf,'numFmtId');
+      styles.xfs.push({numFmtId, numFmt:styles.numFmts[numFmtId] || '', fontId:parseInt(attrAny(xf,'fontId')||'0',10), fillId:parseInt(attrAny(xf,'fillId')||'0',10), borderId:parseInt(attrAny(xf,'borderId')||'0',10), align:attrAny(al,'horizontal'), valign:attrAny(al,'vertical'), wrap:attrAny(al,'wrapText')==='1'});
+    }
+  }catch(e){ styles.warning='Không đọc được styles.xml: '+e.message; }
+  return styles;
+}
+function isDateFormat(numFmtId, fmt){
+  const id=parseInt(numFmtId||'0',10);
+  if([14,15,16,17,18,19,20,21,22,45,46,47].includes(id)) return true;
+  fmt=String(fmt||'').toLowerCase();
+  if(!fmt) return false;
+  return /(^|[^\\])([ymdhHsS])/.test(fmt) && !/\[[a-z]+\]/i.test(fmt.replace(/"[^"]*"/g,''));
+}
+function excelDateToText(v){
+  const n=Number(v); if(!isFinite(n)) return String(v||'');
+  const ms=Math.round((n-25569)*86400*1000); const d=new Date(ms); if(isNaN(d.getTime())) return String(v);
+  const pad=x=>String(x).padStart(2,'0');
+  if(Math.abs(n-Math.round(n))<1e-9) return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth()+1)}/${d.getUTCFullYear()}`;
+  return `${pad(d.getUTCDate())}/${pad(d.getUTCMonth()+1)}/${d.getUTCFullYear()} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+function parseSharedStringsXml(text){
+  if(!text) return [];
+  try{ const doc=xmlDoc(text); return localEls(doc,'si').map(sheetTextFromSi); }
+  catch(e){ return []; }
+}
+async function parseWorkbookOffline(bytes, entries){
+  const wbPath=entryByName(entries,'xl/workbook.xml') ? 'xl/workbook.xml' : null;
+  if(!wbPath) return {sheets:[], warnings:['Không tìm thấy xl/workbook.xml.']};
+  const warnings=[]; const wbText=await zipText(bytes,entries,wbPath); const relText=await zipText(bytes,entries,'xl/_rels/workbook.xml.rels');
+  const shared=parseSharedStringsXml(await zipText(bytes,entries,'xl/sharedStrings.xml')); const styles=parseStylesXml(await zipText(bytes,entries,'xl/styles.xml'));
+  if(styles.warning) warnings.push(styles.warning);
+  const rels={};
+  if(relText){ try{ const rd=xmlDoc(relText); for(const r of localEls(rd,'Relationship')) rels[attrAny(r,'Id')]={target:attrAny(r,'Target'), type:attrAny(r,'Type')}; }catch(e){ warnings.push('Không đọc được workbook relationships: '+e.message); } }
+  let sheets=[];
+  try{
+    const doc=xmlDoc(wbText);
+    for(const sh of localEls(doc,'sheet')){
+      const rid=attrAny(sh,'id'); const rel=rels[rid]; const target=rel ? resolvePartPath(wbPath, rel.target) : '';
+      const item={name:attrAny(sh,'name')||('Sheet '+(sheets.length+1)), sheetId:attrAny(sh,'sheetId'), state:attrAny(sh,'state')||'visible', rid, path:target, type:rel?rel.type:'', cells:{}, rows:{}, cols:{}, merges:[], maxRow:0, maxCol:0, dimension:'', warnings:[]};
+      if(target && /worksheets\//i.test(target) && entryByName(entries,target)){
+        try{ await parseWorksheetPart(bytes,entries,target,item,shared,styles); }catch(e){ item.warnings.push('Không đọc được sheet XML: '+e.message); }
+      }else if(target) item.warnings.push('Không phải worksheet hoặc chưa hỗ trợ hiển thị: '+target); else item.warnings.push('Không tìm thấy đường dẫn XML của sheet.');
+      sheets.push(item);
+    }
+  }catch(e){ warnings.push('Không đọc được workbook.xml: '+e.message); }
+  return {sheets, sharedCount:shared.length, styles, warnings};
+}
+async function parseWorksheetPart(bytes, entries, path, sheet, shared, styles){
+  const text=await zipText(bytes,entries,path); if(!text) throw new Error('Không có dữ liệu '+path);
+  const doc=xmlDoc(text); const dim=localEls(doc,'dimension')[0]; sheet.dimension=attrAny(dim,'ref');
+  const colsNode=localEls(doc,'cols')[0];
+  for(const col of colsNode ? localChildren(colsNode,'col') : []){ const min=parseInt(attrAny(col,'min')||'1',10), max=parseInt(attrAny(col,'max')||String(min),10); for(let c=min;c<=max;c++) sheet.cols[c]={width:parseFloat(attrAny(col,'width')||'0'), hidden:attrAny(col,'hidden')==='1', customWidth:attrAny(col,'customWidth')==='1'}; }
+  for(const mc of localEls(doc,'mergeCell')){ const ref=attrAny(mc,'ref'); if(ref) sheet.merges.push(ref); }
+  const sheetData=localEls(doc,'sheetData')[0];
+  for(const row of sheetData ? localChildren(sheetData,'row') : []){
+    const rnum=parseInt(attrAny(row,'r')||'0',10) || (Object.keys(sheet.rows).length+1);
+    sheet.rows[rnum]={height:parseFloat(attrAny(row,'ht')||'0'), hidden:attrAny(row,'hidden')==='1', customHeight:attrAny(row,'customHeight')==='1'};
+    sheet.maxRow=Math.max(sheet.maxRow,rnum);
+    for(const c of localChildren(row,'c')){
+      const addr=attrAny(c,'r'); const sp=splitAddr(addr); if(!sp) continue;
+      const t=attrAny(c,'t'); const sIdx=parseInt(attrAny(c,'s')||'0',10);
+      const fNode=localChildren(c,'f')[0]; const vNode=localChildren(c,'v')[0]; const isNode=localChildren(c,'is')[0]; const raw=vNode ? (vNode.textContent||'') : '';
+      let value='';
+      if(t==='s') value=shared[parseInt(raw||'0',10)] || '';
+      else if(t==='b') value=(raw==='1')?'TRUE':'FALSE';
+      else if(t==='inlineStr') value=isNode ? localEls(isNode,'t').map(x=>x.textContent||'').join('') : '';
+      else value=raw;
+      const xf=(styles && styles.xfs && styles.xfs[sIdx]) ? styles.xfs[sIdx] : null;
+      if(value!=='' && xf && isDateFormat(xf.numFmtId,xf.numFmt)) value=excelDateToText(value);
+      const formula=fNode ? (fNode.textContent||'') : '';
+      sheet.cells[addr.toUpperCase()]={addr:addr.toUpperCase(), row:sp.row, col:sp.col, type:t, style:sIdx, value, raw, formula};
+      sheet.maxRow=Math.max(sheet.maxRow,sp.row); sheet.maxCol=Math.max(sheet.maxCol,sp.col);
+    }
+  }
+  if(sheet.dimension){ const rg=parseRefRange(sheet.dimension.split(' ')[0]); if(rg){ sheet.maxRow=Math.max(sheet.maxRow,rg.r2); sheet.maxCol=Math.max(sheet.maxCol,rg.c2); } }
+}
+function sheetCellCss(cell, sheet){
+  if(!currentResult || !currentResult.workbook || !currentResult.workbook.styles || !cell) return '';
+  const styles=currentResult.workbook.styles; const xf=styles.xfs[cell.style] || null; if(!xf) return '';
+  const parts=[]; const font=styles.fonts[xf.fontId] || {}; const fill=styles.fills[xf.fillId] || {};
+  if(xf.fillId>=2 && fill.color) parts.push('background:'+fill.color);
+  if(font.color) parts.push('color:'+font.color);
+  if(font.bold) parts.push('font-weight:bold'); if(font.italic) parts.push('font-style:italic'); if(font.underline) parts.push('text-decoration:underline'); if(font.size) parts.push('font-size:'+font.size+'pt'); if(font.name) parts.push('font-family:'+JSON.stringify(font.name)+',Calibri,Arial,sans-serif');
+  if(xf.align) parts.push('text-align:'+(xf.align==='centerContinuous'?'center':xf.align)); if(xf.valign) parts.push('vertical-align:'+(xf.valign==='center'?'middle':xf.valign)); if(xf.wrap) parts.push('white-space:normal');
+  return parts.join(';');
+}
+function renderSheetSelectors(){
+  const sel=$('sheetSelect'); if(!sel) return;
+  const wb=currentResult && currentResult.workbook; const sheets=wb && wb.sheets || [];
+  if(!sheets.length){ sel.innerHTML='<option>Không có sheet đọc được</option>'; sel.disabled=true; if($('sheetInfo')) $('sheetInfo').textContent='Chưa đọc được sheet.'; return; }
+  sel.disabled=false;
+  sel.innerHTML=sheets.map((s,i)=>`<option value="${i}">${escapeHtml(s.name)}${s.state&&s.state!=='visible'?' ('+escapeHtml(s.state)+')':''}</option>`).join('');
+  if(currentSheetIndex<0 || currentSheetIndex>=sheets.length) currentSheetIndex=0; sel.value=String(currentSheetIndex);
+  if($('sheetInfo')) $('sheetInfo').textContent=`Đã đọc ${sheets.length} sheet. SharedStrings: ${wb.sharedCount||0}.`;
+}
+function selectSheetByIndex(v){ currentSheetIndex=parseInt(v,10)||0; showPane('sheet'); renderCurrentSheet(); updateButtons(); }
+function getCurrentSheet(){ const wb=currentResult && currentResult.workbook; return wb && wb.sheets ? wb.sheets[currentSheetIndex] : null; }
+function showPane(mode){
+  const target=(mode==='sheet'||mode==='doc'||mode==='security'||mode==='text')?mode:'vba';
+  activePane=target;
+  const sheetMode=activePane==='sheet', docMode=activePane==='doc', securityMode=activePane==='security', textMode=activePane==='text', vbaMode=activePane==='vba';
+  if($('tabVba')) $('tabVba').classList.toggle('active',vbaMode);
+  if($('tabSheet')) $('tabSheet').classList.toggle('active',sheetMode);
+  if($('tabDoc')) $('tabDoc').classList.toggle('active',docMode);
+  if($('tabText')) $('tabText').classList.toggle('active',textMode);
+  if($('tabSecurity')) $('tabSecurity').classList.toggle('active',securityMode);
+  if($('codeToolbar')) $('codeToolbar').classList.toggle('hidden',!vbaMode);
+  if($('sheetControlBar')) $('sheetControlBar').classList.toggle('hidden',!sheetMode);
+  if($('docControlBar')) $('docControlBar').classList.toggle('hidden',!docMode);
+  if($('textControlBar')) $('textControlBar').classList.toggle('hidden',!textMode);
+  if($('sheetPane')) $('sheetPane').classList.toggle('hidden',!sheetMode);
+  if($('docPane')) $('docPane').classList.toggle('hidden',!docMode);
+  if($('textPane')) $('textPane').classList.toggle('hidden',!textMode);
+  if($('securityPane')) $('securityPane').classList.toggle('hidden',!securityMode);
+  if(!vbaMode){
+    if(editMode) exitEditModeUi();
+    $('codeViewer').classList.add('hidden'); $('codeEditor').classList.add('hidden'); $('emptyViewer').classList.add('hidden'); $('keywordPanel').classList.add('hidden'); $('editBar').classList.remove('show');
+  }
+  if(sheetMode){
+    const sh=getCurrentSheet();
+    $('viewerTitle').textContent=sh ? 'Xem sheet: '+sh.name : 'Xem sheet offline';
+    $('viewerMeta').textContent=sh ? `${sh.path||''} · vùng ${sh.dimension||('A1:'+colLabel(sh.maxCol||1)+(sh.maxRow||1))}` : 'Chưa có sheet để hiển thị.';
+    renderCurrentSheet();
+  }else if(docMode){
+    const d=currentResult && currentResult.document;
+    $('viewerTitle').textContent=d && d.kind ? (d.kind==='word'?'Xem Word document':'Xem PowerPoint') : 'Xem Document offline';
+    $('viewerMeta').textContent=d && d.parts ? `${d.kind} · ${d.parts.length} phần/slide · ${d.imageCount||0} ảnh` : 'Chưa có document để hiển thị.';
+    renderDocumentPane();
+  }else if(textMode){
+    const tf=currentResult && currentResult.textFile; const v=getCurrentTextVariant();
+    $('viewerTitle').textContent=tf ? 'Xem Text/Script: '+(currentResult.fileName||'') : 'Xem Text/Script offline';
+    $('viewerMeta').textContent=v ? `${v.name} · ${(v.text||'').length} ký tự · ${tf.encoding||''}` : 'Chưa có text/script để hiển thị.';
+    renderTextPane();
+  }else if(securityMode){
+    $('viewerTitle').textContent='Kiểm tra file';
+    $('viewerMeta').textContent=currentResult ? 'Đánh giá tĩnh dấu hiệu nguy hại trong VBA, công thức, liên kết, OLE/ActiveX và gói Office.' : 'Chưa có file để kiểm tra.';
+    renderSecurityPane();
+  }else{
+    if($('sheetPane')) $('sheetPane').classList.add('hidden'); if($('docPane')) $('docPane').classList.add('hidden'); if($('textPane')) $('textPane').classList.add('hidden');
+  if($('securityPane')) $('securityPane').classList.add('hidden'); if($('securityPane')) $('securityPane').classList.add('hidden'); if($('codeToolbar')) $('codeToolbar').classList.remove('hidden');
+    const m=getCurrentModule();
+    if(m){ $('viewerTitle').textContent=m.moduleName; $('viewerMeta').textContent=`Stream ${m.streamName} · ${m.lines} dòng · ${m.chars} ký tự · offset nén ${m.offset}`; $('codeViewer').classList.remove('hidden'); $('emptyViewer').classList.add('hidden'); renderKeywordPanel(m); updateCodeHighlight(false); }
+    else { $('codeViewer').classList.add('hidden'); $('emptyViewer').classList.remove('hidden'); }
+  }
+  updateButtons();
+}
+function displayCellValue(cell){ if(!cell) return ''; return ($('showFormulas') && $('showFormulas').checked && cell.formula) ? '='+cell.formula : (cell.value ?? ''); }
+function buildMergeMaps(sheet, maxRow, maxCol){
+  const top=new Map(), skip=new Set();
+  for(const ref of sheet.merges||[]){ const rg=parseRefRange(ref); if(!rg) continue; if(rg.r1>maxRow || rg.c1>maxCol) continue; const rowspan=Math.min(rg.r2,maxRow)-rg.r1+1, colspan=Math.min(rg.c2,maxCol)-rg.c1+1; if(rowspan>1 || colspan>1) top.set(makeAddr(rg.r1,rg.c1),{rowspan,colspan,ref}); for(let r=rg.r1;r<=Math.min(rg.r2,maxRow);r++) for(let c=rg.c1;c<=Math.min(rg.c2,maxCol);c++) if(!(r===rg.r1&&c===rg.c1)) skip.add(makeAddr(r,c)); }
+  return {top,skip};
+}
+function renderCurrentSheet(){
+  if(activePane!=='sheet') return;
+  const wrap=$('sheetGridWrap'); if(!wrap) return; const sh=getCurrentSheet();
+  if(!sh){ wrap.innerHTML='<div class="sheet-empty">Không có sheet để hiển thị.</div>'; if($('sheetPaneTitle')) $('sheetPaneTitle').textContent='Chưa chọn sheet'; return; }
+  if($('sheetSelect')) $('sheetSelect').value=String(currentSheetIndex); if($('sheetPaneTitle')) $('sheetPaneTitle').textContent=`${sh.name} · ${sh.maxRow||0} dòng × ${sh.maxCol||0} cột`;
+  const limit=!!($('limitSheetRender') && $('limitSheetRender').checked); let maxRow=sh.maxRow||1, maxCol=sh.maxCol||1; const reqRows=parseInt($('maxRowsInput')?.value||'300',10), reqCols=parseInt($('maxColsInput')?.value||'80',10);
+  if(limit){ maxRow=Math.min(maxRow, Math.max(1,reqRows||300)); maxCol=Math.min(maxCol, Math.max(1,reqCols||80)); }
+  const search=($('sheetSearchInput')?.value||'').toLowerCase(); const merges=buildMergeMaps(sh,maxRow,maxCol);
+  let html='<table class="sheet-grid"><thead><tr><th class="corner"></th>';
+  for(let c=1;c<=maxCol;c++){ const col=sh.cols[c]||{}; const width=col.width ? Math.max(32,Math.round(col.width*7.2)) : 72; html+=`<th class="colhead" style="width:${width}px;min-width:${width}px;${col.hidden?'opacity:.45;':''}">${colLabel(c)}</th>`; }
+  html+='</tr></thead><tbody>';
+  for(let r=1;r<=maxRow;r++){
+    const row=sh.rows[r]||{}; const rh=row.height ? Math.max(18,Math.round(row.height*1.33)) : 22; html+=`<tr style="height:${rh}px;${row.hidden?'opacity:.45;':''}"><th class="rowhead">${r}</th>`;
+    for(let c=1;c<=maxCol;c++){
+      const addr=makeAddr(r,c); if(merges.skip.has(addr)) continue; const cell=sh.cells[addr]; const disp=displayCellValue(cell); const css=sheetCellCss(cell,sh); const mg=merges.top.get(addr); const attrs=[];
+      if(mg){ if(mg.rowspan>1) attrs.push(`rowspan="${mg.rowspan}"`); if(mg.colspan>1) attrs.push(`colspan="${mg.colspan}"`); }
+      const hay=((disp||'')+' '+(cell&&cell.formula?cell.formula:'')).toLowerCase(); const cls=[cell&&cell.formula?'formula-cell':'', search && hay.includes(search)?'search-hit':''].filter(Boolean).join(' ');
+      html+=`<td class="${cls}" data-addr="${addr}" onclick="selectSheetCell('${addr}')" ${attrs.join(' ')} style="${css}">${escapeHtml(disp)}</td>`;
+    }
+    html+='</tr>';
+  }
+  html+='</tbody></table>';
+  if(limit && ((sh.maxRow||0)>maxRow || (sh.maxCol||0)>maxCol)) html+=`<div class="sheet-warning">Đang giới hạn hiển thị ${maxRow}/${sh.maxRow||0} dòng và ${maxCol}/${sh.maxCol||0} cột để tránh treo trình duyệt. Có thể tăng giới hạn ở khung bên trái.</div>`;
+  if(sh.warnings && sh.warnings.length) html+=`<div class="sheet-warning">${escapeHtml(sh.warnings.join('\n'))}</div>`;
+  wrap.innerHTML=html; if($('cellInfo')) $('cellInfo').textContent='Bấm vào một ô để xem địa chỉ, giá trị và công thức.';
+}
+function selectSheetCell(addr){
+  const sh=getCurrentSheet(); if(!sh) return; const old=document.querySelector('.sheet-grid td.selected'); if(old) old.classList.remove('selected'); const el=document.querySelector(`.sheet-grid td[data-addr="${addr}"]`); if(el) el.classList.add('selected');
+  const c=sh.cells[addr]; const lines=[`Ô: ${addr}`];
+  if(c){ lines.push('Giá trị: '+(c.value ?? '')); lines.push('Giá trị gốc: '+(c.raw ?? '')); if(c.formula) lines.push('Công thức: ='+c.formula); lines.push('Kiểu: '+(c.type||'number/string')+' · Style: '+(c.style||0)); } else lines.push('Ô trống.');
+  if($('cellInfo')) $('cellInfo').textContent=lines.join('\n');
+}
+function fitSheetToScreen(){ const wrap=$('sheetGridWrap'); if(wrap){ wrap.scrollTop=0; wrap.scrollLeft=0; } }
+function downloadCurrentSheetCsv(){
+  const sh=getCurrentSheet(); if(!sh) return; const rows=[]; const maxRow=sh.maxRow||0, maxCol=sh.maxCol||0;
+  for(let r=1;r<=maxRow;r++){ const vals=[]; for(let c=1;c<=maxCol;c++){ const cell=sh.cells[makeAddr(r,c)]; const v=cell ? (cell.value ?? '') : ''; vals.push('"'+String(v).replace(/"/g,'""')+'"'); } rows.push(vals.join(',')); }
+  const name=safeName((currentResult?.fileName||'workbook').replace(/\.[^.]+$/,''))+'_'+safeName(sh.name)+'.csv'; downloadBlob(name, new Blob(['\ufeff'+rows.join('\r\n')], {type:'text/csv;charset=utf-8'}));
+}
+
+
+
+/* ======================= XEM WORD / POWERPOINT OFFLINE ======================= */
+function mimeFromPath(path){
+  const ext=String(path||'').split('.').pop().toLowerCase();
+  return ({png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',bmp:'image/bmp',webp:'image/webp',svg:'image/svg+xml',emf:'application/octet-stream',wmf:'application/octet-stream'})[ext] || 'application/octet-stream';
+}
+function base64FromBytes(bytes){
+  let bin=''; const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){ bin += String.fromCharCode.apply(null, bytes.subarray(i,i+chunk)); }
+  return btoa(bin);
+}
+async function readRelsMap(bytes, entries, relsPath, sourcePart){
+  const text=await zipText(bytes,entries,relsPath); const map={};
+  if(!text) return map;
+  const doc=xmlDoc(text);
+  for(const rel of localEls(doc,'Relationship')){
+    const id=attrAny(rel,'Id'), target=attrAny(rel,'Target'), type=attrAny(rel,'Type');
+    if(!id) continue;
+    map[id]={id,type,target,path:resolvePartPath(sourcePart,target)};
+  }
+  return map;
+}
+function textFromParagraph(p){
+  let out='';
+  const nodes=Array.from(p.getElementsByTagName('*')).filter(e=>['t','tab','br'].includes(e.localName));
+  for(const n of nodes){
+    if(n.localName==='t') out += n.textContent || '';
+    else if(n.localName==='tab') out += '\t';
+    else if(n.localName==='br') out += '\n';
+  }
+  return out;
+}
+function highlightDocText(text){
+  const q=($('docSearchInput')?.value||'').trim();
+  const safe=escapeHtml(text||'');
+  if(!q) return safe;
+  const re=new RegExp(escapeRegex(q),'gi');
+  return safe.replace(re, m=>`<mark class="doc-hit">${escapeHtml(m)}</mark>`);
+}
+async function imageDataUri(bytes, entries, path){
+  const e=entryByName(entries,path); if(!e) return '';
+  const data=await zipExtract(bytes,e); const mime=mimeFromPath(path);
+  if(!/^image\//.test(mime)) return '';
+  return `data:${mime};base64,${base64FromBytes(data)}`;
+}
+async function parseWordDocumentOffline(bytes, entries){
+  const docPath='word/document.xml';
+  if(!entryByName(entries,docPath)) return null;
+  const rels=await readRelsMap(bytes,entries,'word/_rels/document.xml.rels',docPath);
+  const text=await zipText(bytes,entries,docPath); const doc=xmlDoc(text);
+  const body=localEls(doc,'body')[0] || doc.documentElement;
+  const blocks=[]; let textLines=[]; let imgCount=0;
+  for(const child of Array.from(body.children||[])){
+    if(child.localName==='p'){
+      const line=textFromParagraph(child).replace(/\u0000/g,'');
+      const imgs=[];
+      for(const blip of localEls(child,'blip')){
+        const rid=attrAny(blip,'embed') || attrAny(blip,'link'); const rel=rels[rid];
+        if(rel && rel.path){ const uri=await imageDataUri(bytes,entries,rel.path); if(uri){ imgs.push({src:uri,path:rel.path}); imgCount++; } }
+      }
+      if(line.trim() || imgs.length){ blocks.push({type:'p',text:line,images:imgs}); if(line.trim()) textLines.push(line); }
+    }else if(child.localName==='tbl'){
+      const rows=[];
+      for(const tr of localEls(child,'tr')){
+        const cells=[];
+        for(const tc of localChildren(tr,'tc')) cells.push(localEls(tc,'p').map(textFromParagraph).join('\n').trim());
+        if(cells.length) rows.push(cells);
+      }
+      if(rows.length){ blocks.push({type:'table',rows}); rows.forEach(r=>textLines.push(r.join('\t'))); }
+    }
+  }
+  return {kind:'word',title:'Word document',parts:[{title:'Nội dung Word',blocks}],plainText:textLines.join('\n'),imageCount:imgCount,warnings:[]};
+}
+function slideTextFromXml(doc){
+  const chunks=[];
+  for(const sp of localEls(doc,'sp')){
+    const txt=localEls(sp,'t').map(t=>t.textContent||'').join(' ').replace(/\s+/g,' ').trim();
+    if(txt) chunks.push(txt);
+  }
+  if(!chunks.length){
+    const txt=localEls(doc,'t').map(t=>t.textContent||'').join('\n').trim();
+    if(txt) chunks.push(txt);
+  }
+  return chunks.join('\n');
+}
+async function parsePowerPointDocumentOffline(bytes, entries){
+  const presPath='ppt/presentation.xml';
+  if(!entryByName(entries,presPath)) return null;
+  const rels=await readRelsMap(bytes,entries,'ppt/_rels/presentation.xml.rels',presPath);
+  const presText=await zipText(bytes,entries,presPath); const presDoc=xmlDoc(presText);
+  const slideIds=localEls(presDoc,'sldId').map(x=>attrAny(x,'id') || attrAny(x,'embed')).filter(Boolean);
+  let slideTargets=[];
+  for(const sld of localEls(presDoc,'sldId')){
+    const rid=attrAny(sld,'id') || attrAny(sld,'embed'); const rel=rels[rid]; if(rel && rel.path) slideTargets.push(rel.path);
+  }
+  if(!slideTargets.length){ slideTargets=entries.map(e=>e.name).filter(n=>/^ppt\/slides\/slide\d+\.xml$/i.test(n)).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})); }
+  const slides=[]; let all=[]; let imgCount=0;
+  for(let i=0;i<slideTargets.length;i++){
+    const path=slideTargets[i]; const text=await zipText(bytes,entries,path); if(!text) continue;
+    const doc=xmlDoc(text); const slideText=slideTextFromXml(doc); const images=[];
+    const relPath=dirname(path)+'_rels/'+path.split('/').pop()+'.rels'; const srels=await readRelsMap(bytes,entries,relPath,path);
+    for(const blip of localEls(doc,'blip')){
+      const rid=attrAny(blip,'embed') || attrAny(blip,'link'); const rel=srels[rid];
+      if(rel && rel.path){ const uri=await imageDataUri(bytes,entries,rel.path); if(uri){ images.push({src:uri,path:rel.path}); imgCount++; } }
+    }
+    slides.push({type:'slide',title:'Slide '+(i+1),text:slideText,images,path});
+    if(slideText.trim()) all.push('Slide '+(i+1)+'\n'+slideText);
+  }
+  return {kind:'powerpoint',title:'PowerPoint presentation',parts:slides,plainText:all.join('\n\n'),imageCount:imgCount,warnings:[]};
+}
+async function parseOfficeDocumentOffline(bytes, entries){
+  const warnings=[];
+  try{
+    const word=await parseWordDocumentOffline(bytes,entries); if(word) return word;
+  }catch(e){ warnings.push('Không đọc được nội dung Word: '+e.message); }
+  try{
+    const ppt=await parsePowerPointDocumentOffline(bytes,entries); if(ppt) return ppt;
+  }catch(e){ warnings.push('Không đọc được nội dung PowerPoint: '+e.message); }
+  if(warnings.length) return {kind:'unknown',title:'Không đọc được document',parts:[],plainText:'',imageCount:0,warnings};
+  return null;
+}
+function renderDocumentSelectors(){
+  const d=currentResult && currentResult.document;
+  if($('docInfo')){
+    if(d && d.kind && d.kind!=='unknown') $('docInfo').textContent=`Đã đọc ${d.kind==='word'?'Word':'PowerPoint'}: ${d.parts.length} phần/slide, ${d.imageCount||0} ảnh.`;
+    else $('docInfo').textContent='Chưa đọc được Word/PowerPoint.';
+  }
+}
+function renderDocumentPane(){
+  if(activePane!=='doc') return;
+  const wrap=$('docViewWrap'); if(!wrap) return; const d=currentResult && currentResult.document;
+  if(!d || !d.parts || !d.parts.length){
+    wrap.innerHTML='<div class="doc-empty">Không có nội dung Word/PowerPoint để hiển thị.</div>';
+    if($('docPaneTitle')) $('docPaneTitle').textContent='Chưa có document';
+    if($('docMeta')) $('docMeta').textContent='File Excel chỉ có sheet/VBA hoặc tài liệu chưa được hỗ trợ.';
+    return;
+  }
+  if($('docPaneTitle')) $('docPaneTitle').textContent=(d.kind==='word'?'Word document':'PowerPoint')+' · '+(currentResult.fileName||'');
+  if($('docMeta')) $('docMeta').textContent=`Loại: ${d.kind} · Phần/slide: ${d.parts.length} · Ảnh đọc được: ${d.imageCount||0}`+(d.warnings&&d.warnings.length?'\nCảnh báo: '+d.warnings.join('\n'): '');
+  if(d.kind==='word'){
+    const blocks=(d.parts[0]&&d.parts[0].blocks)||[];
+    let html='<div class="doc-page"><h3>Nội dung Word</h3>';
+    for(const b of blocks){
+      if(b.type==='p'){
+        if(b.text) html+='<p>'+highlightDocText(b.text)+'</p>';
+        for(const im of b.images||[]) html+=`<img src="${im.src}" title="${escapeHtml(im.path)}">`;
+      }else if(b.type==='table'){
+        html+='<table class="doc-table"><tbody>'+(b.rows||[]).map(r=>'<tr>'+r.map(c=>'<td>'+highlightDocText(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+      }
+    }
+    html+='</div>'; wrap.innerHTML=html;
+  }else{
+    let html='';
+    for(const slide of d.parts){
+      html+=`<div class="slide-card"><h3>${escapeHtml(slide.title)} <span class="small">${escapeHtml(slide.path||'')}</span></h3>`;
+      html+=`<div class="slide-text">${highlightDocText(slide.text||'(Slide không có text hoặc text nằm trong đối tượng chưa hỗ trợ)')}</div>`;
+      for(const im of slide.images||[]) html+=`<img src="${im.src}" title="${escapeHtml(im.path)}">`;
+      html+='</div>';
+    }
+    wrap.innerHTML=html;
+  }
+}
+function downloadDocumentText(){
+  const d=currentResult && currentResult.document; if(!d) return;
+  const name=safeName((currentResult?.fileName||'document').replace(/\.[^.]+$/,''))+'_document_text.txt';
+  downloadBlob(name, new Blob(['\ufeff'+(d.plainText||'')], {type:'text/plain;charset=utf-8'}));
+}
+
+function fileExt(name){ const m=String(name||'').toLowerCase().match(/\.([a-z0-9]+)$/); return m?m[1]:''; }
+function isTextLikeFile(file, bytes){
+  const ext=fileExt(file && file.name);
+  const textExt='txt,csv,tsv,log,ini,cfg,conf,json,xml,html,htm,css,js,jse,vbs,vbe,wsf,wsc,bat,cmd,ps1,psm1,psd1,reg,sql,md,yml,yaml,rtf,hta'.split(',');
+  if(textExt.includes(ext)) return true;
+  const sample=bytes.slice(0, Math.min(bytes.length, 4096));
+  let nul=0, printable=0;
+  for(const b of sample){ if(b===0) nul++; if(b===9||b===10||b===13||(b>=32&&b<127)||b>=160) printable++; }
+  if(sample.length && nul/sample.length>0.18) return false;
+  return sample.length && printable/sample.length>0.82;
+}
+function safeDecodeBytes(bytes, label){ try{ return new TextDecoder(label,{fatal:false}).decode(bytes); }catch(e){ return null; } }
+function decodeTextBytes(bytes){
+  const warnings=[]; let encoding='UTF-8/auto'; let text='';
+  if(bytes.length>=2 && bytes[0]===0xFF && bytes[1]===0xFE){ encoding='UTF-16LE BOM'; text=safeDecodeBytes(bytes.slice(2),'utf-16le')||''; }
+  else if(bytes.length>=2 && bytes[0]===0xFE && bytes[1]===0xFF){ encoding='UTF-16BE BOM'; text=safeDecodeBytes(bytes.slice(2),'utf-16be')||''; }
+  else if(bytes.length>=3 && bytes[0]===0xEF && bytes[1]===0xBB && bytes[2]===0xBF){ encoding='UTF-8 BOM'; text=safeDecodeBytes(bytes.slice(3),'utf-8')||''; }
+  else{
+    let zerosEven=0, zerosOdd=0, n=Math.min(bytes.length, 2000);
+    for(let i=0;i<n;i++){ if(bytes[i]===0){ if(i%2) zerosOdd++; else zerosEven++; } }
+    if(zerosOdd>n*0.2 && zerosEven<10){ encoding='UTF-16LE heuristic'; text=safeDecodeBytes(bytes,'utf-16le')||''; }
+    else if(zerosEven>n*0.2 && zerosOdd<10){ encoding='UTF-16BE heuristic'; text=safeDecodeBytes(bytes,'utf-16be')||''; }
+    else{
+      text=safeDecodeBytes(bytes,'utf-8')||'';
+      if((text.match(/�/g)||[]).length>Math.max(3,text.length*0.01)){
+        const alt=safeDecodeBytes(bytes,'windows-1258') || safeDecodeBytes(bytes,'windows-1252');
+        if(alt){ encoding='Windows-1258/1252 fallback'; text=alt; warnings.push('UTF-8 có ký tự lỗi, đã thử đọc theo Windows-1258/1252.'); }
+      }
+    }
+  }
+  return {text, encoding, warnings};
+}
+function printableScore(s){ if(!s) return 0; let ok=0; for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); if(c===9||c===10||c===13||(c>=32&&c<0xD800)||c>0xDFFF) ok++; } return ok/s.length; }
+function decodeBase64Text(b64, preferUtf16=false){
+  try{
+    const clean=String(b64||'').replace(/\s+/g,''); if(clean.length<8 || clean.length%4===1) return null;
+    const bin=atob(clean); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i)&255;
+    let t=preferUtf16 ? (safeDecodeBytes(bytes,'utf-16le')||'') : (safeDecodeBytes(bytes,'utf-8')||'');
+    if(!preferUtf16 && printableScore(t)<0.65){ const t16=safeDecodeBytes(bytes,'utf-16le')||''; if(printableScore(t16)>printableScore(t)) t=t16; }
+    return {text:t, bytes};
+  }catch(e){ return null; }
+}
+function decodeHexText(hex){
+  const clean=String(hex||'').replace(/0x/gi,'').replace(/[^0-9a-f]/gi,'');
+  if(clean.length<16 || clean.length%2) return null;
+  const bytes=new Uint8Array(clean.length/2); for(let i=0;i<bytes.length;i++) bytes[i]=parseInt(clean.slice(i*2,i*2+2),16);
+  let t=safeDecodeBytes(bytes,'utf-8')||''; const t16=safeDecodeBytes(bytes,'utf-16le')||''; if(printableScore(t16)>printableScore(t)) t=t16;
+  return {text:t, bytes};
+}
+function decodeHtmlEntitiesSafe(s){
+  try{ const ta=document.createElement('textarea'); ta.innerHTML=s; return ta.value; }catch(e){ return s; }
+}
+function rot13(s){ return String(s||'').replace(/[a-zA-Z]/g, c=>String.fromCharCode((c<='Z'?90:122) >= (c=c.charCodeAt(0)+13) ? c : c-26)); }
+const VBE_RAW_DATA=[
+0x64,0x37,0x69,0x50,0x7E,0x2C,0x22,0x5A,0x65,0x4A,0x45,0x72,0x61,0x3A,0x5B,0x5E,0x79,0x66,0x5D,0x59,0x75,0x5B,0x27,0x4C,0x42,0x76,0x45,0x60,0x63,0x76,0x23,0x62,0x2A,0x65,0x4D,0x43,0x5F,0x51,0x33,0x7E,0x53,0x42,0x4F,0x52,0x20,0x52,0x20,0x63,0x7A,0x26,0x4A,0x21,0x54,0x5A,0x46,0x71,0x38,0x20,0x2B,0x79,0x26,0x66,0x32,0x63,0x2A,0x57,0x2A,0x58,0x6C,0x76,0x7F,0x2B,0x47,0x7B,0x46,0x25,0x30,0x52,0x2C,0x31,0x4F,0x29,0x6C,0x3D,0x69,0x49,0x70,0x3F,0x3F,0x3F,0x27,0x78,0x7B,0x3F,0x3F,0x3F,0x67,0x5F,0x51,0x3F,0x3F,0x3F,0x62,0x29,0x7A,0x41,0x24,0x7E,0x5A,0x2F,0x3B,0x66,0x39,0x47,0x32,0x33,0x41,0x73,0x6F,0x77,0x4D,0x21,0x56,0x43,0x75,0x5F,0x71,0x28,0x26,0x39,0x42,0x78,0x7C,0x46,0x6E,0x53,0x4A,0x64,0x48,0x5C,0x74,0x31,0x48,0x67,0x72,0x36,0x7D,0x6E,0x4B,0x68,0x70,0x7D,0x35,0x49,0x5D,0x22,0x3F,0x6A,0x55,0x4B,0x50,0x3A,0x6A,0x69,0x60,0x2E,0x23,0x6A,0x7F,0x09,0x71,0x28,0x70,0x6F,0x35,0x65,0x49,0x7D,0x74,0x5C,0x24,0x2C,0x5D,0x2D,0x77,0x27,0x54,0x44,0x59,0x37,0x3F,0x25,0x7B,0x6D,0x7C,0x3D,0x7C,0x23,0x6C,0x43,0x6D,0x34,0x38,0x28,0x6D,0x5E,0x31,0x4E,0x5B,0x39,0x2B,0x6E,0x7F,0x30,0x57,0x36,0x6F,0x4C,0x54,0x74,0x34,0x34,0x6B,0x72,0x62,0x4C,0x25,0x4E,0x33,0x56,0x30,0x56,0x73,0x5E,0x3A,0x68,0x73,0x78,0x55,0x09,0x57,0x47,0x4B,0x77,0x32,0x61,0x3B,0x35,0x24,0x44,0x2E,0x4D,0x2F,0x64,0x6B,0x59,0x4F,0x44,0x45,0x3B,0x21,0x5C,0x2D,0x37,0x68,0x41,0x53,0x36,0x61,0x58,0x58,0x7A,0x48,0x79,0x22,0x2E,0x09,0x60,0x50,0x75,0x6B,0x2D,0x38,0x4E,0x29,0x55,0x3D,0x3F,0x51,0x67,0x2f];
+const VBE_PICK=[1,2,0,1,2,0,2,0,0,2,0,2,1,0,2,0,1,0,2,0,1,1,2,0,0,2,1,0,2,0,0,2,1,1,0,2,0,2,0,1,0,1,1,2,0,1,0,2,1,0,2,0,1,1,2,0,0,1,1,2,0,1,0,2];
+function vbeDecodeBase64(arr){
+  const dig={}; for(let i=0;i<26;i++){ dig[65+i]=i; dig[97+i]=i+26; } for(let i=0;i<10;i++) dig[48+i]=i+52; dig[43]=62; dig[47]=63;
+  const d=n=>dig[n]??0;
+  let val=0; val+=(d(arr[0])<<2); val+=(d(arr[1])>>4); val+=(d(arr[1])&15)<<12; val+=((d(arr[2])>>2)<<8); val+=((d(arr[2])&3)<<22); val+=(d(arr[3])<<16); val+=((d(arr[4])<<2)<<24); val+=((d(arr[5])>>4)<<24); return val>>>0;
+}
+function decodeVbeBytes(bytes){
+  const transformed=Array.from({length:3},()=>new Uint16Array(128));
+  for(let i=0;i<32;i++) for(let j=0;j<3;j++) transformed[j][i]=i;
+  for(let i=31;i<=127;i++) for(let j=0;j<3;j++) transformed[j][VBE_RAW_DATA[(i-31)*3+j]]=(i===31)?9:i;
+  const marker=[35,64,126,94], out=[]; let state='COPY', i=0, m=0, len=0, skip=0, next='COPY', csum=0;
+  while(i<bytes.length){
+    const b=bytes[i];
+    if(state==='COPY'){
+      if(b===marker[m]){ i++; m++; if(m===marker.length){ state='READLEN'; m=0; } }
+      else { if(m>0){ for(let k=0;k<m;k++) out.push(marker[k]); m=0; } else { out.push(b); i++; } }
+    }else if(state==='READLEN'){
+      if(i+6>bytes.length){ break; } len=vbeDecodeBase64(Array.from(bytes.slice(i,i+6))); i+=6; skip=2; next='DECODE'; state='SKIP'; m=0; csum=0;
+    }else if(state==='SKIP'){
+      const take=Math.min(skip, bytes.length-i); i+=take; skip-=take; if(skip<=0) state=next;
+    }else if(state==='DECODE'){
+      if(len<=0){ if(i+6<=bytes.length){ i+=6; } skip=6; next='WAIT_CLOSE'; state='SKIP'; }
+      else if(b===64){ i++; len--; state='UNESCAPE'; }
+      else { let c=b; if(b<128){ c=transformed[VBE_PICK[m%64]][b]||b; csum+=c; m++; } out.push(c); i++; len--; }
+    }else if(state==='UNESCAPE'){
+      const map={35:13,38:10,33:60,42:62,36:64}; const c=map[b] ?? 63; out.push(c); csum+=c; i++; len--; m++; state='DECODE';
+    }else if(state==='WAIT_CLOSE'){
+      out.push(b); i++; if(b===62) state='WAIT_OPEN';
+    }else if(state==='WAIT_OPEN'){
+      out.push(b); i++; if(b===60){ state='COPY'; m=0; }
+    }else{ out.push(b); i++; }
+  }
+  if(m>0) for(let k=0;k<m;k++) out.push(marker[k]);
+  return new Uint8Array(out);
+}
+function tryDecodeVbe(text, bytes){
+  if(!/#@~\^/.test(text||'')) return null;
+  try{ const dec=decodeVbeBytes(bytes); const t=safeDecodeBytes(dec,'utf-8') || safeDecodeBytes(dec,'windows-1252') || ''; if(t && t!==text) return t; }catch(e){ return null; }
+  return null;
+}
+function makeTextVariants(baseText, bytes, fileName){
+  const variants=[]; const add=(name,text,note)=>{ if(!text && text!=='') return; const key=text.slice(0,2000); if(variants.some(v=>v._key===key && v.text.length===text.length)) return; variants.push({name,text,note:note||'',_key:key}); };
+  add('Bản đọc gốc', baseText, 'Nội dung đọc theo mã hóa ký tự đã nhận diện.');
+  const vbe=tryDecodeVbe(baseText, bytes); if(vbe) add('Giải mã VBE/JSE Script Encoder', vbe, 'Giải mã khối #@~^ của Microsoft Script Encoder để phân tích tĩnh.');
+  if(/%[0-9a-f]{2}/i.test(baseText)){ try{ const d=decodeURIComponent(baseText.replace(/%(?![0-9a-f]{2})/gi,'%25')); if(d!==baseText) add('URL percent-decoded', d, 'Giải mã %xx/URL-encoded.'); }catch(e){} }
+  if(/&(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/i.test(baseText)){ const h=decodeHtmlEntitiesSafe(baseText); if(h!==baseText) add('HTML entities decoded', h, 'Giải mã entity HTML như &amp;lt;, &#x..;'); }
+  const psRe=/(?:-|\/)(?:enc|encodedcommand|e)\s+([A-Za-z0-9+/=]{20,})/ig; let mm, psCount=0;
+  while((mm=psRe.exec(baseText)) && psCount<8){ const d=decodeBase64Text(mm[1], true); if(d && printableScore(d.text)>0.45){ add('PowerShell -EncodedCommand #'+(++psCount), d.text, 'Giải mã Base64 UTF-16LE sau tham số -EncodedCommand.'); } }
+  const b64Re=/[A-Za-z0-9+/]{40,}={0,2}/g; let b64Count=0;
+  while((mm=b64Re.exec(baseText)) && b64Count<12){ const d=decodeBase64Text(mm[0]); if(d && printableScore(d.text)>0.65 && /[\w\s\-_=+\/\\:.(){},;<>$%]/.test(d.text)){ add('Base64 candidate #'+(++b64Count), d.text, 'Giải mã chuỗi Base64 dài phát hiện trong file.'); } }
+  const hexCandidates=[]; const hex1=baseText.match(/(?:0x[0-9a-f]{2}[,\s]*){8,}/ig)||[]; hexCandidates.push(...hex1);
+  const hex2=baseText.match(/(?:[0-9a-f]{2}[\s,;:-]*){20,}/ig)||[]; hexCandidates.push(...hex2);
+  let hx=0; for(const h of hexCandidates.slice(0,8)){ const d=decodeHexText(h); if(d && printableScore(d.text)>0.62){ add('Hex bytes #'+(++hx), d.text, 'Giải mã chuỗi byte hex/0xNN.'); } }
+  const chr=(baseText.match(/(?:Chr\$?\s*\(\s*\d+\s*\)\s*&?\s*){4,}/ig)||[]).slice(0,8); let cc=0;
+  for(const seq of chr){ const nums=[...seq.matchAll(/Chr\$?\s*\(\s*(\d+)\s*\)/ig)].map(x=>parseInt(x[1],10)); if(nums.length>=4){ add('VBScript Chr() string #'+(++cc), nums.map(n=>String.fromCharCode(n&255)).join(''), 'Ghép chuỗi từ các hàm Chr().'); } }
+  const psChars=(baseText.match(/(?:\[char\]\s*\d+\s*\+?\s*){4,}/ig)||[]).slice(0,8); let pc=0;
+  for(const seq of psChars){ const nums=[...seq.matchAll(/\[char\]\s*(\d+)/ig)].map(x=>parseInt(x[1],10)); if(nums.length>=4){ add('PowerShell [char] string #'+(++pc), nums.map(n=>String.fromCharCode(n)).join(''), 'Ghép chuỗi từ các biểu thức [char]NN.'); } }
+  if(/[A-Za-z]/.test(baseText)){ const r=rot13(baseText); if(/(powershell|createobject|wscript|shell|function|sub|echo|cmd\.exe)/i.test(r)) add('ROT13 candidate', r, 'Giải ROT13 vì phát hiện từ khóa sau khi đảo.'); }
+  return variants.map(({_key,...v})=>v);
+}
+function makeTextFileResult(file, bytes, decoded){
+  const variants=makeTextVariants(decoded.text, bytes, file.name);
+  const primary=variants[1] && /VBE|EncodedCommand/i.test(variants[1].name) ? 1 : 0;
+  return {
+    kind:'text-script', fileName:file.name, encoding:decoded.encoding, size:file.size,
+    variants, selected:primary, warnings:decoded.warnings||[], plainText:(variants[primary]||variants[0]||{text:''}).text
+  };
+}
+function renderTextSelectors(){
+  const sel=$('textVariantSelect'); if(!sel) return;
+  const tf=currentResult && currentResult.textFile; const vars=tf && tf.variants || [];
+  if(!vars.length){ sel.innerHTML='<option>Không có text/script</option>'; sel.disabled=true; if($('textDecodeInfo')) $('textDecodeInfo').textContent='Chưa có file text/script để giải mã.'; return; }
+  if(currentTextVariantIndex<0 || currentTextVariantIndex>=vars.length) currentTextVariantIndex=tf.selected||0;
+  sel.disabled=false; sel.innerHTML=vars.map((v,i)=>`<option value="${i}">${escapeHtml(v.name)}${i===(tf.selected||0)?' · đề xuất':''}</option>`).join(''); sel.value=String(currentTextVariantIndex);
+  if($('textDecodeInfo')) $('textDecodeInfo').textContent=`Mã hóa đọc được: ${tf.encoding||'không rõ'}\nSố bản xem/giải mã: ${vars.length}\n${vars.map((v,i)=>'- '+(i+1)+'. '+v.name+(v.note?' — '+v.note:'')).join('\n')}`;
+}
+function getCurrentTextVariant(){ const tf=currentResult && currentResult.textFile; const vars=tf && tf.variants || []; return vars[currentTextVariantIndex] || null; }
+function selectTextVariant(v){ currentTextVariantIndex=parseInt(v,10)||0; showPane('text'); renderTextPane(); }
+function buildTextHighlight(text, query){
+  const ranges=[]; if(query){ const q=query.toLowerCase(), hay=text.toLowerCase(); let pos=0, guard=0; while((pos=hay.indexOf(q,pos))!==-1){ ranges.push({start:pos,end:pos+query.length,type:'search'}); pos+=Math.max(1,query.length); if(++guard>20000) break; } }
+  const patterns=['powershell','cmd.exe','wscript.shell','cscript.exe','wscript.exe','createobject','frombase64string','encodedcommand','invoke-expression','iex','downloadstring','webclient','xmlhttp','winhttp','reg add','schtasks','rundll32','regsvr32','mshta','certutil','bitsadmin','start-process','new-object','adodb.stream','filesystemobject','deletefile','kill'];
+  for(const p of patterns){ const re=new RegExp(escapeRegex(p),'gi'); let m; while((m=re.exec(text))){ ranges.push({start:m.index,end:m.index+m[0].length,type:'sus'}); if(re.lastIndex===m.index) re.lastIndex++; } }
+  ranges.sort((a,b)=>a.start-b.start || (b.end-b.start)-(a.end-a.start)); const clean=[]; let last=-1; for(const r of ranges){ if(r.start<last) continue; clean.push(r); last=r.end; } return clean;
+}
+function renderTextWithRanges(text,ranges){ let html='', pos=0, ord=0; textMatches=[]; for(const r of ranges){ if(r.start>pos) html+=escapeHtml(text.slice(pos,r.start)); const frag=escapeHtml(text.slice(r.start,r.end)); if(r.type==='search'){ html+=`<mark class="text-hit ${ord===activeTextMatchIndex?'text-hit-active':''}" data-text-match="${ord}">${frag}</mark>`; textMatches.push({start:r.start,end:r.end}); ord++; } else html+=`<span class="sus-mark">${frag}</span>`; pos=r.end; } html+=escapeHtml(text.slice(pos)); return html; }
+function updateTextMatchUi(){ const total=textMatches.length; if($('btnPrevTextMatch')) $('btnPrevTextMatch').disabled=!total; if($('btnNextTextMatch')) $('btnNextTextMatch').disabled=!total; if($('textMatchCount')) $('textMatchCount').textContent=total?(activeTextMatchIndex+1)+'/'+total:'0/0'; }
+function renderTextPane(){
+  const wrap=$('textViewWrap'); const meta=$('textMeta'); const title=$('textPaneTitle'); if(!wrap) return;
+  const v=getCurrentTextVariant(); const tf=currentResult && currentResult.textFile;
+  if(!v){ wrap.innerHTML='<div class="text-empty">Chưa có file text/script để hiển thị.</div>'; if(meta) meta.textContent='Chọn file text/script để xem và giải mã tĩnh.'; updateTextMatchUi(); return; }
+  if(title) title.textContent=v.name;
+  if(meta) meta.textContent=`File: ${(currentResult&&currentResult.fileName)||''}\nMã hóa: ${(tf&&tf.encoding)||''}\nBản xem: ${v.name}\n${v.note||''}`;
+  const q=($('textSearchInput')?.value||''); activeTextMatchIndex = q ? Math.max(0, Math.min(activeTextMatchIndex, 999999)) : -1;
+  const ranges=buildTextHighlight(v.text||'', q); const total=ranges.filter(r=>r.type==='search').length; if(!total) activeTextMatchIndex=-1; if(activeTextMatchIndex>=total) activeTextMatchIndex=total-1;
+  wrap.innerHTML='<pre class="text-viewer">'+renderTextWithRanges(v.text||'',ranges)+'</pre>'; updateTextMatchUi(); scrollToActiveTextMatch();
+}
+function jumpTextMatch(delta){ if(!textMatches.length) return; activeTextMatchIndex=(activeTextMatchIndex+delta+textMatches.length)%textMatches.length; renderTextPane(); }
+function scrollToActiveTextMatch(){ const active=document.querySelector('.text-hit-active'); if(active) active.scrollIntoView({block:'center',inline:'nearest'}); }
+function handleTextSearchKey(ev){ if(ev.key==='Enter'){ ev.preventDefault(); jumpTextMatch(ev.shiftKey?-1:1); } }
+function downloadTextVariant(){ const v=getCurrentTextVariant(); if(!v||!currentResult) return; const name=safeName((currentResult.fileName||'text').replace(/\.[^.]+$/,''))+'_'+safeName(v.name)+'.txt'; downloadBlob(name,new Blob(['\ufeff'+(v.text||'')],{type:'text/plain;charset=utf-8'})); }
+function downloadAllTextVariants(){ const tf=currentResult && currentResult.textFile; if(!tf||!tf.variants||!tf.variants.length) return; const files=tf.variants.map((v,i)=>({name:String(i+1).padStart(2,'0')+'_'+safeName(v.name)+'.txt', data:utf8Bytes('\ufeff'+(v.text||''))})); files.push({name:'_text_decode_report.txt', data:utf8Bytes('\ufeff'+textDecodeReport())}); const zip=createStoreZip(files); downloadBlob(safeName((currentResult.fileName||'text').replace(/\.[^.]+$/,''))+'_TEXT_DECODE.zip', new Blob([zip],{type:'application/zip'})); }
+function textDecodeReport(){ const tf=currentResult && currentResult.textFile; if(!tf) return 'Chưa có text/script.'; const lines=[]; lines.push('BÁO CÁO XEM/GIẢI MÃ TEXT-SCRIPT OFFLINE'); lines.push('File: '+(currentResult.fileName||'')); lines.push('Dung lượng: '+formatBytes(currentResult.fileSize||0)); lines.push('Mã hóa đọc được: '+(tf.encoding||'')); lines.push('Số bản xem/giải mã: '+((tf.variants||[]).length)); (tf.warnings||[]).forEach(w=>lines.push('Cảnh báo: '+w)); (tf.variants||[]).forEach((v,i)=>lines.push(`\n[${i+1}] ${v.name}\n${v.note||''}\nKý tự: ${(v.text||'').length}`)); lines.push('\nGhi chú: Công cụ chỉ giải mã/phân tích tĩnh để đọc và kiểm tra an toàn; không chạy script.'); return lines.join('\r\n'); }
+async function analyzeFile(file){
+  clearAll(false);
+  setStatus('Đang đọc file: '+file.name+' ...');
+  try{
+    const bytes=new Uint8Array(await file.arrayBuffer());
+    const result={fileName:file.name,fileSize:file.size, packageType:'', entries:[], packageBytes:bytes, vbaPath:'', vbaBin:null, cfb:null, modules:[], warnings:[]};
+
+    if(isZip(bytes)){
+      result.packageType='OpenXML ZIP';
+      result.entries=parseZipCentralDirectory(bytes);
+      try{
+        result.workbook=await parseWorkbookOffline(bytes,result.entries);
+        if(result.workbook && result.workbook.warnings) result.warnings.push(...result.workbook.warnings);
+      }catch(e){ result.warnings.push('Không đọc được giao diện sheet: '+e.message); }
+      try{
+        result.document=await parseOfficeDocumentOffline(bytes,result.entries);
+        if(result.document && result.document.warnings) result.warnings.push(...result.document.warnings);
+      }catch(e){ result.warnings.push('Không đọc được Word/PowerPoint: '+e.message); }
+      const vbaEntry=result.entries.find(e=>/(^|\/)vbaProject\.bin$/i.test(e.name));
+      if(!vbaEntry){
+        result.warnings.push('Không tìm thấy vbaProject.bin trong gói Office. File có thể không chứa macro VBA.');
+        currentResult=result; currentSheetIndex=0; renderAll(); renderSheetSelectors();
+        if(result.workbook && result.workbook.sheets && result.workbook.sheets.length){ showPane('sheet'); setStatus('Không tìm thấy VBA, nhưng đã đọc được '+result.workbook.sheets.length+' sheet để xem offline.', 'warn'); }
+        else if(result.document && result.document.parts && result.document.parts.length){ showPane('doc'); setStatus('Không tìm thấy VBA, nhưng đã đọc được nội dung Word/PowerPoint offline.', 'warn'); }
+        else setStatus('Không tìm thấy vbaProject.bin.', 'warn');
+        return;
+      }
+      result.vbaPath=vbaEntry.name;
+      result.vbaBin=await zipExtract(bytes,vbaEntry);
+      result.cfb=parseCfbStreams(result.vbaBin);
+    } else if(isCfb(bytes)){
+      result.packageType='OLE/CFB trực tiếp';
+      result.vbaPath='Toàn bộ file được đọc như CFB/OLE';
+      result.vbaBin=bytes;
+      result.cfb=parseCfbStreams(bytes);
+      const streamNames=result.cfb.streams.map(s=>s.name.toLowerCase());
+      if(streamNames.includes('encryptedpackage')) result.warnings.push('File có stream EncryptedPackage: nhiều khả năng là file Office có mật khẩu mở file, không thể đọc VBA nếu không có mật khẩu.');
+    } else if(isTextLikeFile(file, bytes)){
+      result.packageType='Text/Script';
+      const decoded=decodeTextBytes(bytes);
+      result.textFile=makeTextFileResult(file, bytes, decoded);
+      result.warnings.push(...(result.textFile.warnings||[]));
+      currentResult=result; currentTextVariantIndex=result.textFile.selected||0; renderAll(); renderTextSelectors(); showPane('text');
+      setStatus('Đã đọc file text/script offline. Tìm thấy '+(result.textFile.variants||[]).length+' bản xem/giải mã để phân tích.', 'ok');
+      return;
+    } else {
+      throw new Error('Không nhận diện được file ZIP/OpenXML, OLE/CFB hoặc text/script có thể đọc.');
+    }
+
+    result.warnings.push(...(result.cfb.warnings||[]));
+    const cp=detectCodePage(result.cfb.streams);
+    result.codePage=cp.codePage;
+    if(cp.warning) result.warnings.push(cp.warning);
+    result.modules=scanModules(result.cfb.streams, result.codePage);
+    if(result.modules.length===0) result.warnings.push('Không trích được module VBA dạng text. Có thể file không có macro, bị mã hóa, hoặc cấu trúc VBA khác thường.');
+    result.protection=detectVbaProjectStatus(result);
+    if(result.protection.locked) result.warnings.push('Phát hiện dấu hiệu khóa/mật khẩu VBAProject qua PROJECT stream. Công cụ không đọc/phá mật khẩu gốc; hãy dùng gói khôi phục để lấy lại mã và bảo trì trên bản sao.');
+    if(result.protection.hasSignature) result.warnings.push('Phát hiện vbaProjectSignature.bin. Nếu sửa mã VBA, chữ ký cũ sẽ mất hiệu lực.');
+
+    currentResult=result;
+    currentSheetIndex=0;
+    renderAll();
+    if(result.modules.length){ selectModule(0); setStatus('Đã đọc xong: tìm thấy '+result.modules.length+' module VBA; đọc được '+((result.workbook&&result.workbook.sheets)?result.workbook.sheets.length:0)+' sheet và '+((result.document&&result.document.parts)?result.document.parts.length:0)+' phần/slide document offline.', 'ok'); }
+    else if(result.workbook && result.workbook.sheets && result.workbook.sheets.length){ showPane('sheet'); setStatus('Đã đọc workbook và hiển thị sheet offline, nhưng chưa tìm thấy mã VBA dạng text.', 'warn'); }
+    else if(result.document && result.document.parts && result.document.parts.length){ showPane('doc'); setStatus('Đã đọc Word/PowerPoint offline, nhưng chưa tìm thấy mã VBA dạng text.', 'warn'); }
+    else setStatus('Đã đọc file nhưng chưa tìm thấy mã VBA dạng text.', 'warn');
+  }catch(err){
+    setStatus('Lỗi: '+err.message, 'bad');
+    currentResult={fileName:file.name,fileSize:file.size,modules:[],warnings:[err.message]};
+    renderAll();
+  }
+}
+
+function renderAll(){ renderSummary(); renderModules(); renderRecoveryPanel(); renderSheetSelectors(); renderDocumentSelectors(); renderTextSelectors(); if(activePane==='security') renderSecurityPane(); if(activePane==='text') renderTextPane(); updateButtons(); }
+function renderSummary(){
+  const s=$('summary'), chips=$('chips'); chips.innerHTML='';
+  if(!currentResult){ s.innerHTML='<div>Trạng thái</div><div>Chưa có dữ liệu.</div>'; return; }
+  const r=currentResult;
+  s.innerHTML = `
+    <div>File</div><div>${escapeHtml(r.fileName||'')}</div>
+    <div>Dung lượng</div><div>${formatBytes(r.fileSize||0)}</div>
+    <div>Dạng gói</div><div>${escapeHtml(r.packageType||'Không rõ')}</div>
+    <div>Đường dẫn VBA</div><div>${escapeHtml(r.vbaPath||'Không có')}</div>
+    <div>ZIP entries</div><div>${r.entries ? r.entries.length : 0}</div>
+    <div>CFB streams</div><div>${r.cfb ? r.cfb.streams.length : 0}</div>
+    <div>Codepage</div><div>${r.codePage || 'Không rõ'}</div>
+    <div>Module VBA</div><div>${r.modules ? r.modules.length : 0}</div>
+    <div>Sheet Excel</div><div>${r.workbook && r.workbook.sheets ? r.workbook.sheets.length : 0}</div>
+    <div>Document</div><div>${r.document && r.document.kind ? (r.document.kind+' · '+((r.document.parts||[]).length)+' phần/slide') : 'Không có'}</div>
+    <div>Text/Script</div><div>${r.textFile ? ((r.textFile.encoding||'')+' · '+((r.textFile.variants||[]).length)+' bản xem/giải mã') : 'Không có'}</div>
+    <div>Khóa VBAProject</div><div>${r.protection ? (r.protection.locked ? '<span class="warn">Có dấu hiệu khóa/mật khẩu</span>' : '<span class="ok">Chưa thấy dấu hiệu khóa</span>') : 'Không rõ'}</div>
+    <div>Chữ ký VBA</div><div>${r.protection ? (r.protection.hasSignature ? '<span class="warn">Có vbaProjectSignature.bin</span>' : '<span class="ok">Không thấy</span>') : 'Không rõ'}</div>
+    <div>Cảnh báo</div><div>${(r.warnings||[]).length ? escapeHtml(r.warnings.join('\n')) : '<span class="ok">Không có cảnh báo lớn.</span>'}</div>`;
+  addChip('Không chạy macro','ok');
+  if(r.vbaBin) addChip('Có vbaProject.bin','ok'); else addChip('Không thấy vbaProject.bin','warn');
+  if(r.protection && r.protection.locked) addChip('VBAProject có dấu hiệu khóa','warn');
+  if(r.protection && r.protection.hasSignature) addChip('Có chữ ký VBA','warn');
+  if((r.modules||[]).length) addChip(r.modules.length+' module','ok'); else addChip('0 module','warn');
+  if(r.workbook && r.workbook.sheets && r.workbook.sheets.length) addChip(r.workbook.sheets.length+' sheet offline','ok');
+  if(r.document && r.document.kind && r.document.kind!=='unknown') addChip('Có '+(r.document.kind==='word'?'Word':'PowerPoint')+' offline','ok');
+  if(r.textFile) addChip('Text/Script '+((r.textFile.variants||[]).length)+' bản','ok');
+  const k=(r.modules||[]).reduce((n,m)=>n+m.suspicious.length,0);
+  if(k) addChip(k+' dấu hiệu cần xem','bad'); else addChip('Chưa thấy từ khóa nghi vấn','ok');
+}
+function addChip(text,kind){ const el=document.createElement('span'); el.className='chip '+(kind||''); el.textContent=text; $('chips').appendChild(el); }
+function formatBytes(n){ if(!n) return '0 B'; const u=['B','KB','MB','GB']; let i=0; while(n>=1024&&i<u.length-1){n/=1024;i++;} return n.toFixed(i?1:0)+' '+u[i]; }
+
+function renderModules(){
+  const box=$('moduleList');
+  if(!currentResult || !currentResult.modules || !currentResult.modules.length){ box.innerHTML='<div class="module-item"><div class="module-meta">Chưa có module.</div></div>'; return; }
+  const q=($('filterInput').value||'').toLowerCase().trim();
+  const items=currentResult.modules.map((m,i)=>({m,i})).filter(x=>{
+    if(!q) return true;
+    return x.m.moduleName.toLowerCase().includes(q) || x.m.streamName.toLowerCase().includes(q) || x.m.text.toLowerCase().includes(q);
+  });
+  if(!items.length){ box.innerHTML='<div class="module-item"><div class="module-meta">Không có module phù hợp bộ lọc.</div></div>'; return; }
+  box.innerHTML=items.map(({m,i})=>`
+    <div class="module-item ${i===currentIndex?'active':''}" onclick="selectModule(${i})">
+      <div class="module-title"><span>${m.isEdited?'<span class="dirtydot"></span>':''}${escapeHtml(m.moduleName)}</span><span class="badge ${m.suspicious.length?'warn':'ok'}">${m.suspicious.length?m.suspicious.length+' chú ý':'OK'}</span></div>
+      <div class="module-meta">Stream: ${escapeHtml(m.streamName)} · ${m.lines} dòng · offset ${m.offset} · score ${m.score.toFixed(1)}</div>
+    </div>`).join('');
+}
+
+function selectModule(i){
+  if(editMode){
+    const ok = confirm('Module đang sửa chưa lưu. Chuyển module sẽ hủy phần đang gõ. Tiếp tục?');
+    if(!ok) return;
+    exitEditModeUi();
+  }
+  if(!currentResult || !currentResult.modules[i]) return;
+  currentIndex=i;
+  activePane='vba';
+  const m=currentResult.modules[i];
+  $('viewerTitle').textContent=m.moduleName;
+  $('viewerMeta').textContent=`Stream ${m.streamName} · ${m.lines} dòng · ${m.chars} ký tự · offset nén ${m.offset}`;
+  $('codeViewer').classList.remove('hidden');
+  $('emptyViewer').classList.add('hidden');
+  lastSearchText = '';
+  updateCodeHighlight(true);
+  renderKeywordPanel(m);
+  renderModules(); updateButtons();
+}
+function renderKeywordPanel(m){
+  const p=$('keywordPanel');
+  if(!m || !m.suspicious.length){ p.classList.add('hidden'); p.innerHTML=''; return; }
+  p.classList.remove('hidden');
+  p.innerHTML='<div class="warnbox"><b>Các từ khóa cần kiểm tra thủ công:</b><table class="mt"><thead><tr><th>Nhóm</th><th>Dòng</th><th>Mẫu</th></tr></thead><tbody>'+
+    m.suspicious.map(x=>`<tr><td>${escapeHtml(x.label)}</td><td>${x.line}</td><td><code>${escapeHtml(x.sample)}</code></td></tr>`).join('')+
+    '</tbody></table></div>';
+}
+
+function getCurrentModule(){
+  if(!currentResult || currentIndex<0) return null;
+  return currentResult.modules[currentIndex] || null;
+}
+function buildHighlightRanges(text){
+  const ranges=[];
+  const query=($('codeSearchInput')?.value || '');
+  const color=$('highlightColor')?.value || 'yellow';
+  const caseSensitive=!!($('caseSensitive') && $('caseSensitive').checked);
+  if(query){
+    const hay = caseSensitive ? text : text.toLowerCase();
+    const needle = caseSensitive ? query : query.toLowerCase();
+    let pos=0, guard=0;
+    while(needle && (pos = hay.indexOf(needle,pos)) !== -1){
+      ranges.push({start:pos,end:pos+query.length,type:'search',color});
+      pos += Math.max(1, query.length);
+      if(++guard>20000) break;
+    }
+  }
+  if($('markSuspicious') && $('markSuspicious').checked){
+    const seen=new Set();
+    const patterns=['Auto_Open','Workbook_Open','Document_Open','AutoOpen','Application.Run','Shell','WScript.Shell','cmd.exe','powershell','PowerShell','CreateObject','XMLHTTP','WinHttp','URLDownloadToFile','MSXML2','ADODB.Stream','FileSystemObject','Kill','RmDir','MkDir','Declare','FindWindow','SetWindowPos','kernel32','user32','VBProject','VBComponents','CodeModule','Environ','GetObject'];
+    for(const word of patterns){
+      const re=new RegExp(escapeRegex(word),'gi');
+      let m;
+      while((m=re.exec(text))){
+        const key=m.index+':'+(m.index+m[0].length);
+        if(!seen.has(key)){ ranges.push({start:m.index,end:m.index+m[0].length,type:'sus'}); seen.add(key); }
+        if(m[0].length===0) re.lastIndex++;
+      }
+    }
+  }
+  ranges.sort((a,b)=>a.start-b.start || (b.end-b.start)-(a.end-a.start));
+  const clean=[];
+  let lastEnd=-1;
+  for(const r of ranges){
+    if(r.start<lastEnd) continue;
+    clean.push(r); lastEnd=r.end;
+  }
+  return clean;
+}
+function renderCodeWithRanges(text, ranges){
+  let html='', pos=0, searchOrdinal=0;
+  currentMatches=[];
+  for(const r of ranges){
+    if(r.start>pos) html += escapeHtml(text.slice(pos,r.start));
+    const frag=escapeHtml(text.slice(r.start,r.end));
+    if(r.type==='search'){
+      const cls='hl hl-'+(r.color||'yellow')+(searchOrdinal===activeMatchIndex?' hl-active':'');
+      html += `<mark class="${cls}" data-match="${searchOrdinal}">${frag}</mark>`;
+      currentMatches.push({start:r.start,end:r.end});
+      searchOrdinal++;
+    }else{
+      html += `<span class="sus-mark">${frag}</span>`;
+    }
+    pos=r.end;
+  }
+  html += escapeHtml(text.slice(pos));
+  return html || '';
+}
+function updateCodeHighlight(resetActive){
+  if(editMode) return;
+  const m=getCurrentModule();
+  const viewer=$('codeViewer');
+  if(!m){
+    currentMatches=[]; activeMatchIndex=-1; updateMatchUi(); return;
+  }
+  const query=($('codeSearchInput').value||'');
+  if(resetActive || query!==lastSearchText){ activeMatchIndex = query ? 0 : -1; lastSearchText=query; }
+  const ranges=buildHighlightRanges(m.text);
+  const searchTotal=ranges.filter(r=>r.type==='search').length;
+  if(searchTotal===0) activeMatchIndex=-1;
+  if(activeMatchIndex>=searchTotal) activeMatchIndex=searchTotal-1;
+  viewer.innerHTML=renderCodeWithRanges(m.text,ranges);
+  updateMatchUi();
+  if(activeMatchIndex>=0) scrollToActiveMatch();
+}
+function updateMatchUi(){
+  const total=currentMatches.length;
+  $('btnPrevMatch').disabled=!total;
+  $('btnNextMatch').disabled=!total;
+  $('matchCount').textContent = total ? (activeMatchIndex+1)+'/'+total : '0/0';
+}
+function scrollToActiveMatch(){
+  const viewer=$('codeViewer');
+  const active=viewer.querySelector('.hl-active');
+  if(active) active.scrollIntoView({block:'center', inline:'nearest'});
+}
+function jumpMatch(delta){
+  if(!currentMatches.length) return;
+  activeMatchIndex=(activeMatchIndex+delta+currentMatches.length)%currentMatches.length;
+  updateCodeHighlight(false);
+}
+function handleSearchKey(ev){
+  if(ev.key==='Enter'){
+    ev.preventDefault();
+    jumpMatch(ev.shiftKey ? -1 : 1);
+  }
+}
+function hasEdits(){ return !!(currentResult && currentResult.modules && currentResult.modules.some(m=>m.isEdited)); }
+function updateWriteLog(extra){
+  const el=$('writeLog');
+  if(!el) return;
+  if(!currentResult){ el.textContent='Chưa có thay đổi nào trong bộ nhớ.'; return; }
+  const edited=(currentResult.modules||[]).filter(m=>m.isEdited);
+  let lines=[];
+  if(edited.length){
+    lines.push('Đang có '+edited.length+' module đã sửa trong bộ nhớ:');
+    edited.forEach(m=>lines.push('- '+m.moduleName+' ('+m.lines+' dòng, '+m.chars+' ký tự)'));
+  } else lines.push('Chưa có thay đổi nào trong bộ nhớ.');
+  if(extra) lines.push('\n'+extra);
+  el.textContent=lines.join('\n');
+}
+
+function sevWeight(sev){ return {info:0,low:1,medium:3,high:7,critical:12}[sev] ?? 0; }
+function sevLabel(sev){ return {info:'Thông tin',low:'Thấp',medium:'Trung bình',high:'Cao',critical:'Rất cao'}[sev] || sev; }
+function riskClass(level){ return level==='Rất cao'?'risk-critical':level==='Cao'?'risk-high':level==='Trung bình'?'risk-med':'risk-low'; }
+function classifyRisk(score, criticalCount, highCount){
+  if(criticalCount || score>=28) return {level:'Rất cao', note:'Có dấu hiệu cần cách ly/kiểm tra bằng sandbox trước khi mở bằng Office.'};
+  if(highCount || score>=14) return {level:'Cao', note:'Có lệnh hoặc cấu trúc nhạy cảm. Không bật macro nếu chưa xác minh nguồn.'};
+  if(score>=5) return {level:'Trung bình', note:'Có macro/liên kết/cấu trúc cần kiểm tra thủ công.'};
+  return {level:'Thấp', note:'Chưa thấy dấu hiệu nguy hại rõ ràng trong phân tích tĩnh.'};
+}
+function makeFinding(severity, category, location, detail, sample=''){
+  return {severity, category, location, detail, sample:String(sample||'').replace(/\s+/g,' ').trim().slice(0,600)};
+}
+function extractUrlsFromText(text){
+  const out=[]; const re=/(https?:\/\/[^\s"'<>\)]+|ftp:\/\/[^\s"'<>\)]+|file:\/\/[^\s"'<>\)]+|\\\\[A-Za-z0-9_.-]+\\[^\s"'<>]+)/gi; let m;
+  while((m=re.exec(text||''))) out.push(m[0]);
+  return out;
+}
+function addUniqueFinding(list, f){
+  const key=[f.severity,f.category,f.location,f.detail,f.sample].join('\u0001');
+  if(!list._keys) list._keys=new Set();
+  if(list._keys.has(key)) return;
+  list._keys.add(key); list.push(f);
+}
+function collectSecurityFindings(result){
+  const findings=[];
+  if(!result){ return {findings:[],score:0,level:'Chưa kiểm tra',note:'Chưa chọn file.',urls:[]}; }
+  addUniqueFinding(findings, makeFinding('info','Tệp',result.fileName||'','Dung lượng '+formatBytes(result.fileSize||0)+' · '+(result.packageType||'Không rõ')));
+  if(result.warnings && result.warnings.length){
+    for(const w of result.warnings) addUniqueFinding(findings, makeFinding(/mật khẩu mở file|EncryptedPackage/i.test(w)?'high':'medium','Cảnh báo đọc file','Bộ phân tích',w));
+  }
+  if(result.vbaBin) addUniqueFinding(findings, makeFinding('medium','Macro VBA',result.vbaPath||'vbaProject.bin','File có VBAProject/macro. Chỉ bật macro khi đã xác minh nguồn.'));
+  else addUniqueFinding(findings, makeFinding('low','Macro VBA','Gói Office','Chưa thấy vbaProject.bin.'));
+  if(result.protection){
+    if(result.protection.locked) addUniqueFinding(findings, makeFinding('info','Bảo vệ VBAProject','PROJECT stream','Có dấu hiệu khóa VBAProject bằng DPB/CMG/GC. Đây không tự nó là mã độc, nhưng cần lưu ý khi bảo trì.'));
+    if(result.protection.hasSignature) addUniqueFinding(findings, makeFinding('info','Chữ ký VBA','vbaProjectSignature.bin','Có chữ ký VBA. Nếu mã đã bị sửa sau khi ký, Office có thể cảnh báo chữ ký không hợp lệ.'));
+  }
+  const autoPatterns=[
+    {re:/\b(Workbook_Open|Auto_Open|Document_Open|AutoOpen|Presentation_Open|AutoExec|AutoClose)\b/ig, sev:'high', cat:'Macro tự chạy', detail:'Macro có thể tự chạy khi mở/đóng tài liệu.'},
+    {re:/\bShell\b|WScript\.Shell|cmd\.exe|powershell|mshta|rundll32|regsvr32|wscript\.exe|cscript\.exe/ig, sev:'critical', cat:'Lệnh hệ thống', detail:'Có dấu hiệu gọi shell/công cụ hệ thống.'},
+    {re:/CreateObject\s*\(|GetObject\s*\(/ig, sev:'high', cat:'COM/Automation', detail:'Có tạo/lấy COM object; cần xem object được gọi là gì.'},
+    {re:/XMLHTTP|WinHttp|URLDownloadToFile|MSXML2|InternetOpen|WebClient/ig, sev:'high', cat:'Mạng/tải dữ liệu', detail:'Có dấu hiệu kết nối mạng hoặc tải dữ liệu.'},
+    {re:/ADODB\.Stream|Open\s+.+\s+For\s+(Output|Binary|Append)|FileSystemObject|\bKill\b|\bRmDir\b|\bName\s+.+\s+As\b/ig, sev:'high', cat:'File/thư mục', detail:'Có thao tác ghi/xóa/đổi tên file hoặc stream nhị phân.'},
+    {re:/Declare\s+(PtrSafe\s+)?(Function|Sub)|kernel32|user32|advapi32|URLMON|FindWindow|SetWindowPos/ig, sev:'medium', cat:'Windows API', detail:'Có gọi API hệ điều hành.'},
+    {re:/VBProject|VBComponents|CodeModule/ig, sev:'high', cat:'Tự sửa VBA', detail:'Macro có thể truy cập/sửa VBAProject.'},
+    {re:/Chr\$?\s*\(|Asc\s*\(|StrReverse|Execute\s*\(|Eval\s*\(|CallByName|Base64|FromBase64String/ig, sev:'medium', cat:'Làm rối/ẩn chuỗi', detail:'Có dấu hiệu dựng chuỗi động hoặc làm rối mã.'}
+  ];
+  const urls=[];
+  for(const m of result.modules||[]){
+    for(const sus of m.suspicious||[]) addUniqueFinding(findings, makeFinding('medium','Từ khóa VBA',m.moduleName+' dòng '+sus.line,sus.label,sus.sample));
+    for(const rule of autoPatterns){ let mm; rule.re.lastIndex=0; while((mm=rule.re.exec(m.text||''))){
+      const line=(m.text.slice(0,mm.index).match(/\n/g)||[]).length+1;
+      const sample=(m.text||'').split(/\r\n|\n|\r/)[line-1]||mm[0];
+      addUniqueFinding(findings, makeFinding(rule.sev,rule.cat,m.moduleName+' dòng '+line,rule.detail,sample));
+      if(rule.re.lastIndex===mm.index) rule.re.lastIndex++;
+    }}
+    for(const u of extractUrlsFromText(m.text||'')){ urls.push(u); addUniqueFinding(findings, makeFinding('high','URL/đường dẫn ngoài',m.moduleName,'Phát hiện URL/UNC trong VBA.',u)); }
+    const longB64=(m.text||'').match(/[A-Za-z0-9+/]{180,}={0,2}/g)||[];
+    for(const b of longB64.slice(0,8)) addUniqueFinding(findings, makeFinding('high','Chuỗi dài nghi vấn',m.moduleName,'Có chuỗi dài giống Base64/encoded payload.',b.slice(0,160)+'...'));
+  }
+  for(const e of result.entries||[]){
+    const n=e.name||'';
+    if(e.encrypted) addUniqueFinding(findings, makeFinding('high','ZIP entry mã hóa',n,'Một thành phần trong gói Office bị mã hóa.'));
+    if(/(^|\/)xl\/externalLinks\//i.test(n) || /externalLink/i.test(n)) addUniqueFinding(findings, makeFinding('medium','Liên kết ngoài',n,'Workbook có external links.'));
+    if(/(^|\/)(xl|word|ppt)\/embeddings\//i.test(n) || /oleObject/i.test(n)) addUniqueFinding(findings, makeFinding('medium','OLE/nhúng đối tượng',n,'Có đối tượng nhúng/OLE cần kiểm tra.'));
+    if(/(^|\/)(xl|word|ppt)\/activeX\//i.test(n)) addUniqueFinding(findings, makeFinding('high','ActiveX',n,'Có ActiveX control trong tài liệu.'));
+    if(/connections\.xml|queryTables|pivotCache|customXml|ddeLinks/i.test(n)) addUniqueFinding(findings, makeFinding('medium','Kết nối/dữ liệu ngoài',n,'Có thành phần có thể liên quan kết nối dữ liệu ngoài hoặc DDE.'));
+    if(/vbaProjectSignature\.bin/i.test(n)) addUniqueFinding(findings, makeFinding('info','Chữ ký VBA',n,'Có chữ ký số VBA.'));
+    for(const u of extractUrlsFromText(n)){ urls.push(u); addUniqueFinding(findings, makeFinding('medium','URL trong tên entry',n,'Tên entry chứa URL/đường dẫn.',u)); }
+  }
+  const wb=result.workbook;
+  if(wb && wb.sheets){
+    for(const sh of wb.sheets){
+      let checked=0;
+      for(const [addr,cell] of Object.entries(sh.cells||{})){
+        if(!cell || !cell.formula) continue; checked++;
+        const f='='+cell.formula;
+        if(/HYPERLINK|WEBSERVICE|FILTERXML|ENCODEURL|RTD|DDE|cmd|powershell|http:|https:|file:|\\\\/i.test(f)){
+          addUniqueFinding(findings, makeFinding(/cmd|powershell|DDE/i.test(f)?'high':'medium','Công thức cần kiểm tra',sh.name+'!'+addr,'Công thức có liên kết/hàm web/DDE hoặc chuỗi nhạy cảm.',f));
+          for(const u of extractUrlsFromText(f)){ urls.push(u); }
+        }
+        if(checked>20000) break;
+      }
+    }
+  }
+  const d=result.document;
+  if(d && d.plainText){
+    for(const u of extractUrlsFromText(d.plainText)){ urls.push(u); addUniqueFinding(findings, makeFinding('medium','URL trong document',d.kind||'document','Nội dung Word/PowerPoint chứa URL/đường dẫn.',u)); }
+  }
+  const tf=result.textFile;
+  if(tf && tf.variants){
+    addUniqueFinding(findings, makeFinding('info','Text/Script',result.fileName||'','File text/script được đọc tĩnh; không chạy nội dung. Mã hóa: '+(tf.encoding||'không rõ')));
+    if(tf.variants.length>1) addUniqueFinding(findings, makeFinding('medium','Giải mã/làm rõ text',result.fileName||'','Có '+tf.variants.length+' bản xem/giải mã; cần kiểm tra bản đã giải mã.'));
+    const scriptRules=[
+      {re:/\b(?:powershell|pwsh)\b|EncodedCommand|FromBase64String|Invoke-Expression|\biex\b|DownloadString|WebClient/ig, sev:'critical', cat:'PowerShell nguy hiểm', detail:'Có dấu hiệu lệnh PowerShell/tải dữ liệu/giải mã payload.'},
+      {re:/\b(?:cmd\.exe|cscript\.exe|wscript\.exe|mshta|rundll32|regsvr32|schtasks|certutil|bitsadmin)\b/ig, sev:'critical', cat:'Công cụ hệ thống', detail:'Script gọi công cụ hệ thống nhạy cảm.'},
+      {re:/WScript\.Shell|CreateObject\s*\(|GetObject\s*\(|ActiveXObject/ig, sev:'high', cat:'COM/Automation', detail:'Script tạo COM/ActiveX object.'},
+      {re:/XMLHTTP|WinHttp|ADODB\.Stream|InternetOpen|URLDownloadToFile|Start-BitsTransfer/ig, sev:'high', cat:'Mạng/stream', detail:'Có dấu hiệu kết nối mạng hoặc ghi stream.'},
+      {re:/Del\s+|Erase\s+|Remove-Item|Set-ItemProperty|reg\s+add|New-ItemProperty|FileSystemObject|DeleteFile|DeleteFolder|CopyFile|MoveFile/ig, sev:'high', cat:'File/Registry', detail:'Có thao tác xóa/sửa file, registry hoặc filesystem.'},
+      {re:/eval\s*\(|Execute\s*\(|ExecuteGlobal|Function\s*\(|atob\s*\(|unescape\s*\(|String\.fromCharCode/ig, sev:'medium', cat:'Làm rối/execute động', detail:'Có dấu hiệu dựng mã/chuỗi động.'}
+    ];
+    for(const [vi,v] of tf.variants.entries()){
+      const loc=(result.fileName||'text')+' · '+v.name;
+      for(const rule of scriptRules){ let sm; rule.re.lastIndex=0; while((sm=rule.re.exec(v.text||''))){
+        const line=(v.text.slice(0,sm.index).match(/\n/g)||[]).length+1; const sample=(v.text||'').split(/\r\n|\n|\r/)[line-1]||sm[0];
+        addUniqueFinding(findings, makeFinding(rule.sev, rule.cat, loc+' dòng '+line, rule.detail, sample));
+        if(rule.re.lastIndex===sm.index) rule.re.lastIndex++;
+      }}
+      for(const u of extractUrlsFromText(v.text||'')){ urls.push(u); addUniqueFinding(findings, makeFinding('high','URL/đường dẫn trong text',loc,'Phát hiện URL/UNC trong text/script.',u)); }
+      const longB64=(v.text||'').match(/[A-Za-z0-9+/]{180,}={0,2}/g)||[];
+      for(const b of longB64.slice(0,8)) addUniqueFinding(findings, makeFinding('high','Chuỗi dài nghi vấn',loc,'Có chuỗi dài giống Base64/encoded payload.',b.slice(0,160)+'...'));
+    }
+  }
+  let score=0, high=0, critical=0;
+  for(const f of findings){ score+=sevWeight(f.severity); if(f.severity==='high') high++; if(f.severity==='critical') critical++; }
+  // Có VBA không tự làm file nguy hiểm như lệnh shell, nên giới hạn đóng góp của thông tin lặp lại.
+  score=Math.min(score, 80);
+  const risk=classifyRisk(score,critical,high);
+  return {findings,score,high,critical,urls:[...new Set(urls)],level:risk.level,note:risk.note};
+}
+function renderSecurityPane(){
+  const wrap=$('securityViewWrap'); if(!wrap) return;
+  if(!currentResult){ wrap.innerHTML='<div class="security-empty">Chưa có file để kiểm tra.</div>'; return; }
+  const data=collectSecurityFindings(currentResult);
+  const q=($('securitySearchInput')?.value||'').toLowerCase().trim();
+  const sev=$('securitySeverityFilter')?.value||'all';
+  let rows=data.findings.filter(f=>{
+    const okSev=sev==='all' || f.severity===sev;
+    const hay=(f.severity+' '+f.category+' '+f.location+' '+f.detail+' '+f.sample).toLowerCase();
+    return okSev && (!q || hay.includes(q));
+  });
+  const counts={info:0,low:0,medium:0,high:0,critical:0};
+  for(const f of data.findings) counts[f.severity]=(counts[f.severity]||0)+1;
+  const riskCls=riskClass(data.level);
+  const html=[];
+  html.push(`<div class="risk-cards">
+    <div class="risk-card ${riskCls}"><span>Mức rủi ro tổng hợp</span><b>${escapeHtml(data.level)}</b><span>Điểm: ${data.score}</span></div>
+    <div class="risk-card"><span>Phát hiện</span><b>${data.findings.length}</b><span>Cao/Rất cao: ${counts.high||0}/${counts.critical||0}</span></div>
+    <div class="risk-card"><span>URL/đường dẫn</span><b>${data.urls.length}</b><span>Trong VBA, công thức hoặc document</span></div>
+    <div class="risk-card"><span>Module VBA</span><b>${(currentResult.modules||[]).length}</b><span>Sheet: ${currentResult.workbook&&currentResult.workbook.sheets?currentResult.workbook.sheets.length:0} · Text: ${currentResult.textFile&&currentResult.textFile.variants?currentResult.textFile.variants.length:0}</span></div>
+  </div>`);
+  html.push(`<div class="warnbox"><b>Nhận định:</b> ${escapeHtml(data.note)}<br>Đây là kiểm tra tĩnh offline, không thay thế antivirus/EDR/sandbox và không khẳng định file sạch 100%.</div>`);
+  if(!rows.length){ html.push('<div class="security-empty">Không có phát hiện phù hợp bộ lọc.</div>'); }
+  else{
+    html.push('<table class="finding-table"><thead><tr><th>Mức</th><th>Nhóm</th><th>Vị trí</th><th>Chi tiết</th><th>Mẫu phát hiện</th></tr></thead><tbody>');
+    for(const f of rows){ html.push(`<tr><td><span class="sev ${f.severity}">${sevLabel(f.severity)}</span></td><td>${escapeHtml(f.category)}</td><td>${escapeHtml(f.location)}</td><td>${escapeHtml(f.detail)}</td><td class="finding-sample">${escapeHtml(f.sample)}</td></tr>`); }
+    html.push('</tbody></table>');
+  }
+  wrap.innerHTML=html.join('');
+}
+function securityReportText(){
+  if(!currentResult) return 'Chưa có file để kiểm tra.';
+  const data=collectSecurityFindings(currentResult);
+  const lines=[];
+  lines.push('BÁO CÁO KIỂM TRA AN TOÀN FILE OFFICE/TEXT');
+  lines.push('File: '+(currentResult.fileName||''));
+  lines.push('Dung lượng: '+formatBytes(currentResult.fileSize||0));
+  lines.push('Loại: '+(currentResult.packageType||''));
+  lines.push('Mức rủi ro: '+data.level+' · Điểm '+data.score);
+  lines.push('Nhận định: '+data.note);
+  lines.push('Module VBA: '+((currentResult.modules||[]).length));
+  lines.push('Text/Script variants: '+(currentResult.textFile&&currentResult.textFile.variants?currentResult.textFile.variants.length:0));
+  lines.push('URL/đường dẫn phát hiện: '+data.urls.length);
+  if(data.urls.length){ lines.push('\nURL/ĐƯỜNG DẪN:'); data.urls.forEach(u=>lines.push('- '+u)); }
+  lines.push('\nPHÁT HIỆN CHI TIẾT:');
+  for(const f of data.findings){ lines.push(`[${sevLabel(f.severity)}] ${f.category} | ${f.location} | ${f.detail}${f.sample?' | '+f.sample:''}`); }
+  lines.push('\nLưu ý: Đây là phân tích tĩnh offline, không chạy macro và không thay thế antivirus/sandbox.');
+  return lines.join('\n');
+}
+function downloadSecurityReport(){
+  if(!currentResult) return;
+  const name=safeName((currentResult.fileName||'office_file').replace(/\.[^.]+$/,''))+'_security_report.txt';
+  downloadBlob(name,new Blob(['\ufeff'+securityReportText()],{type:'text/plain;charset=utf-8'}));
+}
+function toggleViewerControls(){
+  const card=document.querySelector('.viewer-card'); if(!card) return;
+  const hidden=card.classList.toggle('controls-minimized');
+  const btn=$('btnToggleViewerControls'); if(btn) btn.textContent=hidden?'Hiện ĐK':'Ẩn ĐK';
+}
+function toggleSidebar(){
+  const hidden=document.body.classList.toggle('sidebar-hidden');
+  const btn=$('btnToggleSidebar'); if(btn) btn.textContent=hidden?'Hiện bên':'Ẩn bên';
+}
+
+function updateButtons(){
+  const has=!!(currentResult && currentResult.modules && currentResult.modules.length);
+  $('btnZip').disabled=!has; $('btnReport').disabled=!currentResult; $('btnBin').disabled=!(currentResult&&currentResult.vbaBin);
+  const one=has && currentIndex>=0 && activePane==='vba';
+  $('btnCopy').disabled=!one; $('btnOne').disabled=!one; $('btnEditTop').disabled=!one || editMode;
+  $('btnEdit').disabled=!one || editMode; $('btnSaveEdit').disabled=!editMode; $('btnCancelEdit').disabled=!editMode;
+  const hasSheets=!!(currentResult && currentResult.workbook && currentResult.workbook.sheets && currentResult.workbook.sheets.length);
+  const hasDoc=!!(currentResult && currentResult.document && currentResult.document.parts && currentResult.document.parts.length);
+  const hasText=!!(currentResult && currentResult.textFile && currentResult.textFile.variants && currentResult.textFile.variants.length);
+  if($('tabSheet')) $('tabSheet').disabled=!hasSheets;
+  if($('tabDoc')) $('tabDoc').disabled=!hasDoc;
+  if($('tabText')) $('tabText').disabled=!hasText;
+  if($('tabSecurity')) $('tabSecurity').disabled=!currentResult;
+  if($('btnSecurityReport')) $('btnSecurityReport').disabled=!currentResult;
+  if($('btnOpenSheetPane')) $('btnOpenSheetPane').disabled=!hasSheets;
+  if($('btnExportSheetCsv')) $('btnExportSheetCsv').disabled=!hasSheets;
+  if($('btnOpenDocPane')) $('btnOpenDocPane').disabled=!hasDoc;
+  if($('btnExportDocText')) $('btnExportDocText').disabled=!hasDoc;
+  if($('btnExportText')) $('btnExportText').disabled=!hasText;
+  if($('btnExportTextAll')) $('btnExportTextAll').disabled=!hasText;
+  $('btnRevertModule').disabled=!one || !getCurrentModule()?.isEdited || editMode;
+  $('btnDownloadEditedModule').disabled=!one; $('btnEditedZip').disabled=!has;
+  const canBuild=!!(currentResult && currentResult.vbaBin && has && hasEdits() && !editMode);
+  $('btnBuildBin').disabled=!canBuild; $('btnBuildOffice').disabled=!canBuild || currentResult.packageType!=='OpenXML ZIP';
+  if($('btnRecoveryZip')) $('btnRecoveryZip').disabled=!has;
+  if($('btnImportGuide')) $('btnImportGuide').disabled=!currentResult;
+  if($('btnCleanSignatureOffice')) $('btnCleanSignatureOffice').disabled=!(currentResult && currentResult.packageType==='OpenXML ZIP' && currentResult.vbaBin && currentResult.protection && currentResult.protection.hasSignature);
+  updateWriteLog();
+}
+
+function clearAll(resetInput=true){
+  currentResult=null; currentIndex=-1;
+  if(resetInput) $('fileInput').value='';
+  $('summary').innerHTML='<div>Trạng thái</div><div>Chưa có dữ liệu.</div>';
+  $('chips').innerHTML=''; $('moduleList').innerHTML='<div class="module-item"><div class="module-meta">Chưa có module.</div></div>';
+  $('viewerTitle').textContent='Chưa chọn module'; $('viewerMeta').textContent='Mã VBA sẽ hiển thị tại đây.';
+  $('codeViewer').textContent=''; $('codeViewer').innerHTML=''; $('codeViewer').classList.add('hidden'); $('codeEditor').value=''; $('codeEditor').classList.add('hidden'); $('editBar').classList.remove('show'); editMode=false; $('emptyViewer').classList.remove('hidden');
+  $('keywordPanel').classList.add('hidden'); $('keywordPanel').innerHTML=''; $('filterInput').value='';
+  $('codeSearchInput').value=''; currentMatches=[]; activeMatchIndex=-1; lastSearchText=''; updateMatchUi();
+  activePane='vba'; currentSheetIndex=0;
+  if($('sheetPane')) $('sheetPane').classList.add('hidden');
+  if($('docPane')) $('docPane').classList.add('hidden');
+  if($('textPane')) $('textPane').classList.add('hidden');
+  if($('sheetControlBar')) $('sheetControlBar').classList.add('hidden');
+  if($('docControlBar')) $('docControlBar').classList.add('hidden');
+  if($('textControlBar')) $('textControlBar').classList.add('hidden');
+  if($('codeToolbar')) $('codeToolbar').classList.remove('hidden');
+  if($('tabVba')) $('tabVba').classList.add('active'); if($('tabSheet')) { $('tabSheet').classList.remove('active'); $('tabSheet').disabled=true; } if($('tabDoc')) { $('tabDoc').classList.remove('active'); $('tabDoc').disabled=true; } if($('tabText')) { $('tabText').classList.remove('active'); $('tabText').disabled=true; } if($('tabSecurity')) { $('tabSecurity').classList.remove('active'); $('tabSecurity').disabled=true; }
+  if($('sheetSelect')) { $('sheetSelect').innerHTML='<option>Chưa có workbook</option>'; $('sheetSelect').disabled=true; }
+  if($('sheetInfo')) $('sheetInfo').textContent='Chưa đọc được sheet.';
+  if($('sheetGridWrap')) $('sheetGridWrap').innerHTML='<div class="sheet-empty">Chưa có sheet để hiển thị.</div>';
+  if($('cellInfo')) $('cellInfo').textContent='Bấm vào một ô để xem địa chỉ, giá trị và công thức.';
+  if($('docInfo')) $('docInfo').textContent='Chưa đọc được Word/PowerPoint.';
+  if($('docViewWrap')) $('docViewWrap').innerHTML='<div class="doc-empty">Chưa có document để hiển thị.</div>';
+  if($('textVariantSelect')) { $('textVariantSelect').innerHTML='<option>Chưa có file text</option>'; $('textVariantSelect').disabled=true; }
+  if($('textDecodeInfo')) $('textDecodeInfo').textContent='Chưa có file text/script để giải mã.';
+  if($('textViewWrap')) $('textViewWrap').innerHTML='<div class="text-empty">Chưa có file text/script để hiển thị.</div>';
+  if($('textMeta')) $('textMeta').textContent='Chọn file text/script để xem và giải mã tĩnh.';
+  if($('textPaneTitle')) $('textPaneTitle').textContent='Chưa có text/script';
+  if($('textSearchInput')) $('textSearchInput').value='';
+  textMatches=[]; activeTextMatchIndex=-1; currentTextVariantIndex=0; updateTextMatchUi();
+  if($('securityViewWrap')) $('securityViewWrap').innerHTML='<div class="security-empty">Chọn file rồi mở tab Kiểm tra file.</div>';
+  if($('securitySearchInput')) $('securitySearchInput').value='';
+  if($('securitySeverityFilter')) $('securitySeverityFilter').value='all';
+  if($('docMeta')) $('docMeta').textContent='Chọn file Word hoặc PowerPoint để xem nội dung.';
+  if($('docPaneTitle')) $('docPaneTitle').textContent='Chưa có document';
+  if($('docSearchInput')) $('docSearchInput').value='';
+  $('writeLog').textContent='Chưa có thay đổi nào trong bộ nhớ.'; if($('recoveryPanel')) $('recoveryPanel').textContent='Chưa có dữ liệu bảo vệ VBAProject.'; lastModifiedBinCache=null; lastModifiedBinKey=''; setStatus('Chưa chọn file.'); updateButtons();
+}
+
+
+function enterEditMode(){
+  const m=getCurrentModule(); if(!m) return;
+  editMode=true;
+  $('codeEditor').value=m.text;
+  $('codeViewer').classList.add('hidden');
+  $('codeEditor').classList.remove('hidden');
+  $('emptyViewer').classList.add('hidden');
+  $('editBar').classList.add('show');
+  $('codeEditor').focus();
+  updateButtons();
+}
+function exitEditModeUi(){
+  editMode=false;
+  $('codeEditor').classList.add('hidden');
+  $('editBar').classList.remove('show');
+  if(getCurrentModule()) $('codeViewer').classList.remove('hidden'); else $('emptyViewer').classList.remove('hidden');
+  updateButtons();
+}
+function saveEditMode(){
+  const m=getCurrentModule(); if(!m || !editMode) return;
+  const newText=$('codeEditor').value;
+  m.text=newText;
+  m.lines=newText.split(/\r\n|\n|\r/).length;
+  m.chars=newText.length;
+  m.suspicious=scanSuspicious(newText);
+  m.extension=guessExtension(m.moduleName,newText);
+  m.isEdited=(newText !== m.originalText);
+  lastModifiedBinCache=null; lastModifiedBinKey='';
+  exitEditModeUi();
+  renderKeywordPanel(m); updateCodeHighlight(true); renderModules(); updateButtons();
+  setStatus(m.isEdited ? 'Đã lưu phần sửa của module '+m.moduleName+' trong bộ nhớ. Chưa ghi vào file Excel.' : 'Module giống bản gốc, không còn đánh dấu đã sửa.', m.isEdited?'ok':'warn');
+}
+function cancelEditMode(){ exitEditModeUi(); setStatus('Đã hủy phần đang gõ, giữ nguyên mã trong bộ nhớ.', 'warn'); }
+function revertCurrentModule(){
+  const m=getCurrentModule(); if(!m) return;
+  if(!confirm('Hoàn nguyên module '+m.moduleName+' về mã gốc đã đọc từ file?')) return;
+  m.text=m.originalText; m.lines=m.text.split(/\r\n|\n|\r/).length; m.chars=m.text.length; m.suspicious=scanSuspicious(m.text); m.extension=guessExtension(m.moduleName,m.text); m.isEdited=false;
+  lastModifiedBinCache=null; lastModifiedBinKey='';
+  updateCodeHighlight(true); renderKeywordPanel(m); renderModules(); updateButtons(); setStatus('Đã hoàn nguyên module '+m.moduleName+'.','ok');
+}
+function cfbEntryByName(cfb,name){ return (cfb.entries||[]).find(e=>e.type===2 && e.name===name); }
+function updateDirEntrySizeInFile(out, cfb, ent, newSize){
+  const rel=ent.idx*128;
+  const sectorIndex=Math.floor(rel/cfb.sectorSize);
+  const within=rel%cfb.sectorSize;
+  if(sectorIndex>=cfb.dirChain.length) throw new Error('Không tìm thấy sector thư mục cho stream '+ent.name);
+  const off=cfb.secOffset(cfb.dirChain[sectorIndex])+within;
+  putU32(out, off+120, newSize>>>0); putU32(out, off+124, Math.floor(newSize/0x100000000));
+}
+function zeroRange(out,start,len){ for(let i=0;i<len;i++) out[start+i]=0; }
+function writeRegularStream(out, cfb, ent, newData){
+  const chain=cfb.getFatChain(ent.start); const cap=chain.length*cfb.sectorSize;
+  if(newData.length>cap) throw new Error(CFB_WRITE_MAX_GROWTH_NOTICE+' Stream '+ent.name+': '+newData.length+' > '+cap+' bytes.');
+  let pos=0;
+  for(const sec of chain){
+    const off=cfb.secOffset(sec); const n=Math.min(cfb.sectorSize, newData.length-pos);
+    if(n>0) out.set(newData.slice(pos,pos+n),off);
+    if(n<cfb.sectorSize) zeroRange(out,off+n,cfb.sectorSize-n);
+    pos+=n;
+  }
+  updateDirEntrySizeInFile(out,cfb,ent,newData.length);
+}
+function writeMiniStream(out, cfb, ent, newData){
+  const chain=cfb.getMiniChain(ent.start); const cap=chain.length*cfb.miniSectorSize;
+  if(newData.length>cap) throw new Error(CFB_WRITE_MAX_GROWTH_NOTICE+' Mini stream '+ent.name+': '+newData.length+' > '+cap+' bytes.');
+  const rootChain=cfb.rootChain;
+  let pos=0;
+  for(const miniSec of chain){
+    const abs=miniSec*cfb.miniSectorSize;
+    const rootIndex=Math.floor(abs/cfb.sectorSize);
+    const within=abs%cfb.sectorSize;
+    if(rootIndex>=rootChain.length) throw new Error('Mini stream vượt ngoài Root Entry khi ghi '+ent.name);
+    const off=cfb.secOffset(rootChain[rootIndex])+within;
+    const n=Math.min(cfb.miniSectorSize, newData.length-pos);
+    if(n>0) out.set(newData.slice(pos,pos+n),off);
+    if(n<cfb.miniSectorSize) zeroRange(out,off+n,cfb.miniSectorSize-n);
+    pos+=n;
+  }
+  updateDirEntrySizeInFile(out,cfb,ent,newData.length);
+}
+function writeStreamSameAllocation(out, cfb, ent, newData){
+  if(ent.size < cfb.miniCutoff && cfb.miniFat && cfb.miniFat.length) writeMiniStream(out,cfb,ent,newData);
+  else writeRegularStream(out,cfb,ent,newData);
+}
+function buildEditedModuleStream(rawStream, module, codePage){
+  const src=encodeByCodePage(module.text, codePage || 1252);
+  const comp=compressVbaSmart(src);
+  const prefix=rawStream.slice(0,module.offset);
+  const newStream=concatArrays([prefix, comp]);
+  const warnings=[];
+  if(src.replacedChars) warnings.push('Module '+module.moduleName+': có '+src.replacedChars+' ký tự không mã hóa được theo codepage '+codePage+', đã thay bằng dấu ?.');
+  return {newStream,warnings,compressedSize:comp.length,sourceBytes:src.length};
+}
+function editedKey(){
+  if(!currentResult) return '';
+  return (currentResult.modules||[]).filter(m=>m.isEdited).map(m=>m.streamName+':'+m.text.length+':'+crc32(utf8Bytes(m.text))).join('|');
+}
+function buildModifiedVbaProjectBin(){
+  if(!currentResult || !currentResult.vbaBin) throw new Error('Chưa có vbaProject.bin.');
+  const edited=(currentResult.modules||[]).filter(m=>m.isEdited);
+  if(!edited.length) throw new Error('Chưa có module nào được sửa trong bộ nhớ.');
+  const key=editedKey();
+  if(lastModifiedBinCache && key===lastModifiedBinKey) return lastModifiedBinCache;
+  const out=new Uint8Array(currentResult.vbaBin);
+  const cfb=parseCfbStreams(out);
+  const logs=[]; const warnings=[];
+  for(const m of edited){
+    const ent=cfbEntryByName(cfb,m.streamName);
+    if(!ent) throw new Error('Không tìm thấy stream module '+m.streamName+' trong vbaProject.bin.');
+    const streamObj=cfb.streams.find(s=>s.name===m.streamName);
+    if(!streamObj) throw new Error('Không đọc được dữ liệu stream '+m.streamName+'.');
+    const built=buildEditedModuleStream(streamObj.data,m,currentResult.codePage||1252);
+    warnings.push(...built.warnings);
+    writeStreamSameAllocation(out,cfb,ent,built.newStream);
+    logs.push('Đã ghi module '+m.moduleName+': stream '+m.streamName+', source '+built.sourceBytes+' bytes, compressed-container '+built.compressedSize+' bytes, stream mới '+built.newStream.length+' bytes.');
+  }
+  let verify='';
+  try{
+    const vc=parseCfbStreams(out);
+    const mods=scanModules(vc.streams,currentResult.codePage||1252);
+    for(const m of edited){
+      const vm=mods.find(x=>x.streamName===m.streamName || x.moduleName===m.moduleName);
+      if(!vm || vm.text.trim()!==m.text.trim()) warnings.push('Kiểm tra lại sau ghi chưa khớp hoàn toàn với module '+m.moduleName+'. Hãy thử mở bản xuất bằng Excel trên bản sao.');
+    }
+    verify='\nKiểm tra đọc lại vbaProject.bin sau ghi: thấy '+mods.length+' module.';
+  }catch(e){ warnings.push('Không tự kiểm tra lại được vbaProject.bin sau khi ghi: '+e.message); }
+  lastModifiedBinCache={bytes:out, logs, warnings, key, verify}; lastModifiedBinKey=key;
+  return lastModifiedBinCache;
+}
+function downloadModifiedVbaBin(){
+  try{
+    const built=buildModifiedVbaProjectBin();
+    const msg=[...built.logs, built.verify, ...built.warnings.map(w=>'Cảnh báo: '+w)].filter(Boolean).join('\n');
+    updateWriteLog(msg); setStatus('Đã tạo vbaProject.bin đã sửa để tải về.', 'ok');
+    downloadBlob(safeName((currentResult.fileName||'file').replace(/\.[^.]+$/,''))+'_vbaProject_MODIFIED.bin', new Blob([built.bytes],{type:'application/octet-stream'}));
+  }catch(e){ updateWriteLog('Lỗi tạo vbaProject.bin:\n'+e.message); setStatus('Lỗi tạo vbaProject.bin: '+e.message,'bad'); }
+}
+function replaceOfficeExt(name){
+  if(/\.(xlsm|xlam|xlsb|docm|dotm|pptm|ppam|potm)$/i.test(name)) return name.replace(/(\.[^.]+)$/i,'_VBA_DA_SUA$1');
+  return safeName(name.replace(/\.[^.]+$/,''))+'_VBA_DA_SUA.xlsm';
+}
+async function buildModifiedOfficeBytes(modifiedBin){
+  if(!currentResult || currentResult.packageType!=='OpenXML ZIP' || !currentResult.packageBytes) throw new Error('Chỉ tạo lại file Office mới cho định dạng OpenXML ZIP như .xlsm/.xlam/.docm/.pptm.');
+  const removeSig=!!$('removeSignature').checked;
+  const files=[]; const removed=[];
+  for(const e of currentResult.entries){
+    if(e.name.endsWith('/')){ files.push({name:e.name,data:new Uint8Array(0)}); continue; }
+    if(e.name===currentResult.vbaPath){ files.push({name:e.name,data:modifiedBin}); continue; }
+    if(removeSig && /vbaProjectSignature\.bin$/i.test(e.name)){ removed.push(e.name); continue; }
+    if(removeSig && /vbaProject\.bin\.rels$/i.test(e.name)){ removed.push(e.name); continue; }
+    let data=await zipExtract(currentResult.packageBytes,e);
+    if(removeSig && e.name==='[Content_Types].xml'){
+      let txt=decodeUtf8(data);
+      txt=txt.replace(/<Override\b[^>]*vbaProjectSignature\.bin[^>]*\/>/gi,'');
+      txt=txt.replace(/<Default\b[^>]*Extension="bin"[^>]*vbaProjectSignature[^>]*\/>/gi,'');
+      data=utf8Bytes(txt);
+    }
+    files.push({name:e.name,data});
+  }
+  const zip=createStoreZip(files);
+  return {zip, removed};
+}
+async function downloadModifiedOfficeFile(){
+  try{
+    const built=buildModifiedVbaProjectBin();
+    const off=await buildModifiedOfficeBytes(built.bytes);
+    const msg=[...built.logs, built.verify, ...built.warnings.map(w=>'Cảnh báo: '+w), off.removed.length?('Đã xóa chữ ký/liên kết chữ ký: '+off.removed.join(', ')):'Không xóa chữ ký hoặc không tìm thấy chữ ký.'].filter(Boolean).join('\n');
+    updateWriteLog(msg); setStatus('Đã tạo file Office mới đã cập nhật VBA. Hãy mở thử trên bản sao trước khi dùng chính thức.', 'ok');
+    downloadBlob(replaceOfficeExt(currentResult.fileName||'office.xlsm'), new Blob([off.zip],{type:'application/vnd.ms-excel.sheet.macroEnabled.12'}));
+  }catch(e){ updateWriteLog('Lỗi tạo file Office mới:\n'+e.message); setStatus('Lỗi tạo file Office mới: '+e.message,'bad'); }
+}
+
+function recoveryBaseName(){
+  return safeName(((currentResult && currentResult.fileName) || 'vba').replace(/\.[^.]+$/,''));
+}
+function importableExtForModule(m){
+  if(m.extension==='.cls.txt') return '.cls';
+  if(m.extension==='.frm.txt') return '.frm';
+  return '.bas';
+}
+function makeRecoveryGuide(){
+  const r=currentResult || {modules:[],protection:{}};
+  const p=r.protection || {};
+  const lines=[];
+  lines.push('HƯỚNG DẪN KHÔI PHỤC LÀM VIỆC VỚI MÃ VBA');
+  lines.push('================================================');
+  lines.push('');
+  lines.push('Mục tiêu: lấy lại mã VBA để bảo trì hợp lệ khi quên mật khẩu VBAProject.');
+  lines.push('Công cụ này không đọc, dò, phá hoặc gỡ mật khẩu VBAProject gốc.');
+  lines.push('');
+  lines.push('1) Nội dung gói khôi phục');
+  lines.push('- modules_text_utf8/: mã VBA dạng .txt UTF-8 để đọc, tìm kiếm, lưu trữ.');
+  lines.push('- importable/: bản .bas/.cls/.frm để import vào VBAProject mới khi phù hợp.');
+  lines.push('- import_modules_helper.bas: macro hỗ trợ import hàng loạt vào workbook/add-in mới.');
+  lines.push('- bao_cao_phan_tich_vba.txt: báo cáo trạng thái, module, từ khóa cần kiểm tra.');
+  lines.push('- manifest.json: danh sách module và metadata.');
+  lines.push('');
+  lines.push('2) Cách khôi phục an toàn');
+  lines.push('Bước 1: Giải nén gói ZIP khôi phục ra một thư mục riêng.');
+  lines.push('Bước 2: Tạo một file Excel mới dạng .xlsm hoặc add-in mới .xlam.');
+  lines.push('Bước 3: Mở VBA Editor bằng Alt+F11.');
+  lines.push('Bước 4: Nếu muốn import hàng loạt, vào File > Import File... và import import_modules_helper.bas, sau đó chạy ImportModulesFromRecoveryFolder.');
+  lines.push('Bước 5: Khi được hỏi thư mục, chọn thư mục importable trong gói đã giải nén.');
+  lines.push('Bước 6: Kiểm tra lại từng module, References, UserForm, ThisWorkbook/Sheet code và lưu file mới.');
+  lines.push('');
+  lines.push('3) Lưu ý với ThisWorkbook/Sheet/UserForm');
+  lines.push('- Code của ThisWorkbook, Sheet, Chart thường nên dán lại vào đúng object module trong file mới, thay vì import thành class module độc lập.');
+  lines.push('- UserForm có thể cần file .frx/giao diện form; bản HTML chủ yếu khôi phục phần code text nên cần kiểm tra thủ công.');
+  lines.push('- Nếu file gốc có chữ ký VBA, chữ ký cũ sẽ mất hiệu lực sau khi sửa mã. Hãy ký lại bằng chứng thư hợp lệ nếu cần.');
+  lines.push('');
+  lines.push('4) Trạng thái file đã phân tích');
+  lines.push('- File: '+(r.fileName||''));
+  lines.push('- Dạng gói: '+(r.packageType||''));
+  lines.push('- Có vbaProject.bin: '+(r.vbaBin?'Có':'Không'));
+  lines.push('- Dấu hiệu khóa VBAProject: '+(p.locked?'Có':'Không thấy'));
+  lines.push('- Dấu hiệu DPB/CMG/GC: '+([p.hasDPB?'DPB':'',p.hasCMG?'CMG':'',p.hasGC?'GC':''].filter(Boolean).join(', ') || 'Không thấy'));
+  lines.push('- Chữ ký VBA: '+(p.hasSignature?'Có':'Không thấy'));
+  lines.push('- Số module trích được: '+((r.modules||[]).length));
+  lines.push('');
+  lines.push('5) Yêu cầu để chạy import_modules_helper.bas');
+  lines.push('- Excel phải cho phép: File > Options > Trust Center > Trust Center Settings > Macro Settings > Trust access to the VBA project object model.');
+  lines.push('- Chỉ chạy helper trong file mới hoặc bản sao tin cậy. Không chạy macro từ nguồn không rõ.');
+  return lines.join('\r\n');
+}
+function makeImportHelperBas(){
+  return `' Import helper generated by offline VBA recovery HTML\r\n`+
+`' Use only in a NEW workbook/add-in that you own. This does not bypass VBAProject passwords.\r\n`+
+`Option Explicit\r\n\r\n`+
+`Public Sub ImportModulesFromRecoveryFolder()\r\n`+
+`    Dim fd As FileDialog\r\n`+
+`    Dim folderPath As String\r\n`+
+`    Set fd = Application.FileDialog(msoFileDialogFolderPicker)\r\n`+
+`    With fd\r\n`+
+`        .Title = "Chọn thư mục importable trong gói VBA đã giải nén"\r\n`+
+`        .AllowMultiSelect = False\r\n`+
+`        If .Show <> -1 Then Exit Sub\r\n`+
+`        folderPath = .SelectedItems(1)\r\n`+
+`    End With\r\n`+
+`    If Right$(folderPath, 1) <> "\\" Then folderPath = folderPath & "\\"\r\n`+
+`    ImportByPattern folderPath, "*.bas"\r\n`+
+`    ImportByPattern folderPath, "*.cls"\r\n`+
+`    ImportByPattern folderPath, "*.frm"\r\n`+
+`    MsgBox "Đã hoàn tất lệnh import. Hãy kiểm tra lại ThisWorkbook/Sheet/UserForm và References trước khi dùng chính thức.", vbInformation\r\n`+
+`End Sub\r\n\r\n`+
+`Private Sub ImportByPattern(ByVal folderPath As String, ByVal pattern As String)\r\n`+
+`    Dim f As String\r\n`+
+`    f = Dir$(folderPath & pattern)\r\n`+
+`    Do While Len(f) > 0\r\n`+
+`        On Error Resume Next\r\n`+
+`        ThisWorkbook.VBProject.VBComponents.Import folderPath & f\r\n`+
+`        If Err.Number <> 0 Then\r\n`+
+`            Debug.Print "Không import được: " & f & " - " & Err.Description\r\n`+
+`            Err.Clear\r\n`+
+`        Else\r\n`+
+`            Debug.Print "Đã import: " & f\r\n`+
+`        End If\r\n`+
+`        On Error GoTo 0\r\n`+
+`        f = Dir$()\r\n`+
+`    Loop\r\n`+
+`End Sub\r\n`;
+}
+function buildRecoveryManifest(){
+  const r=currentResult || {modules:[],protection:{}};
+  return {
+    tool:'offline-vba-reader-recovery-editor',
+    note:'Static recovery package. Does not reveal, crack, remove, or bypass VBAProject password.',
+    fileName:r.fileName || '', fileSize:r.fileSize || 0, packageType:r.packageType || '', vbaPath:r.vbaPath || '', codePage:r.codePage || '',
+    protection:r.protection || null,
+    modules:(r.modules||[]).map(m=>({moduleName:m.moduleName, streamName:m.streamName, lines:m.lines, chars:m.chars, offset:m.offset, edited:!!m.isEdited, exportText:'modules_text_utf8/'+safeName(m.moduleName)+m.extension, importable:'importable/'+safeName(m.moduleName)+importableExtForModule(m), suspicious:m.suspicious||[]}))
+  };
+}
+function downloadRecoveryPack(){
+  if(!currentResult || !currentResult.modules || !currentResult.modules.length) return;
+  const files=[];
+  const base=recoveryBaseName();
+  files.push({name:'HUONG_DAN_KHOI_PHUC.txt', data:utf8Bytes('\ufeff'+makeRecoveryGuide())});
+  files.push({name:'bao_cao_phan_tich_vba.txt', data:utf8Bytes('\ufeff'+buildReport())});
+  files.push({name:'import_modules_helper.bas', data:utf8Bytes(makeImportHelperBas())});
+  files.push({name:'manifest.json', data:utf8Bytes(JSON.stringify(buildRecoveryManifest(), null, 2))});
+  for(const m of currentResult.modules){
+    files.push({name:'modules_text_utf8/'+safeName(m.moduleName)+m.extension, data:utf8Bytes('\ufeff'+m.text)});
+    let encoded=encodeByCodePage(m.text, currentResult.codePage || 1252);
+    files.push({name:'importable/'+safeName(m.moduleName)+importableExtForModule(m), data:encoded});
+  }
+  if($('includeVbaBinInRecovery') && $('includeVbaBinInRecovery').checked && currentResult.vbaBin){
+    files.push({name:'original/vbaProject.bin', data:currentResult.vbaBin});
+  }
+  const zip=createStoreZip(files);
+  setStatus('Đã tạo gói khôi phục. Hãy import vào file mới hoặc bản sao tin cậy, không cần biết mật khẩu cũ.', 'ok');
+  downloadBlob(base+'_GOI_KHOI_PHUC_VBA.zip', new Blob([zip], {type:'application/zip'}));
+}
+function downloadImportGuide(){
+  if(!currentResult) return;
+  downloadBlob(recoveryBaseName()+'_HUONG_DAN_KHOI_PHUC.txt', new Blob(['\ufeff'+makeRecoveryGuide()], {type:'text/plain;charset=utf-8'}));
+}
+function cleanSignatureExt(name){
+  if(/\.(xlsm|xlam|xlsb|docm|dotm|pptm|ppam|potm)$/i.test(name)) return name.replace(/(\.[^.]+)$/i,'_BO_CHU_KY_VBA$1');
+  return safeName(name.replace(/\.[^.]+$/,''))+'_BO_CHU_KY_VBA.xlsm';
+}
+async function downloadSignatureCleanOffice(){
+  try{
+    if(!currentResult || currentResult.packageType!=='OpenXML ZIP' || !currentResult.vbaBin) throw new Error('Chỉ áp dụng cho file OpenXML ZIP có vbaProject.bin.');
+    const cb=$('removeSignature');
+    const old=cb ? cb.checked : true;
+    if(cb) cb.checked=true;
+    const off=await buildModifiedOfficeBytes(currentResult.vbaBin);
+    if(cb) cb.checked=old;
+    const msg=off.removed.length ? ('Đã tạo bản file mới và xóa chữ ký/liên kết chữ ký: '+off.removed.join(', ')) : 'Không tìm thấy chữ ký VBA để xóa.';
+    updateWriteLog(msg);
+    setStatus(msg, off.removed.length?'ok':'warn');
+    downloadBlob(cleanSignatureExt(currentResult.fileName||'office.xlsm'), new Blob([off.zip], {type:'application/vnd.ms-excel.sheet.macroEnabled.12'}));
+  }catch(e){ setStatus('Lỗi tạo bản bỏ chữ ký VBA: '+e.message, 'bad'); updateWriteLog('Lỗi tạo bản bỏ chữ ký VBA:\n'+e.message); }
+}
+
+async function copyCurrent(){
+  if(!currentResult || currentIndex<0) return;
+  try{ await navigator.clipboard.writeText(currentResult.modules[currentIndex].text); setStatus('Đã copy mã module vào clipboard.', 'ok'); }
+  catch(e){ setStatus('Không copy được tự động. Anh có thể bôi đen vùng mã và copy thủ công.', 'warn'); }
+}
+function downloadBlob(name, blob){
+  if(currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+  currentObjectUrl=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=currentObjectUrl; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+}
+function downloadCurrentModule(){
+  if(!currentResult || currentIndex<0) return;
+  const m=currentResult.modules[currentIndex];
+  const name=safeName(m.moduleName)+m.extension;
+  downloadBlob(name, new Blob(['\ufeff'+m.text], {type:'text/plain;charset=utf-8'}));
+}
+function downloadVbaBin(){
+  if(!currentResult || !currentResult.vbaBin) return;
+  downloadBlob(safeName((currentResult.fileName||'file').replace(/\.[^.]+$/,''))+'_vbaProject.bin', new Blob([currentResult.vbaBin], {type:'application/octet-stream'}));
+}
+function downloadAllZip(){
+  if(!currentResult || !currentResult.modules.length) return;
+  const files=currentResult.modules.map(m=>({name:safeName(m.moduleName)+m.extension, data:utf8Bytes('\ufeff'+m.text)}));
+  files.push({name:'_bao_cao_phan_tich.txt', data:utf8Bytes('\ufeff'+buildReport())});
+  const zip=createStoreZip(files);
+  downloadBlob(safeName((currentResult.fileName||'vba').replace(/\.[^.]+$/,''))+'_VBA_modules.zip', new Blob([zip], {type:'application/zip'}));
+}
+function downloadReport(){
+  if(!currentResult) return;
+  downloadBlob(safeName((currentResult.fileName||'vba').replace(/\.[^.]+$/,''))+'_bao_cao_vba.txt', new Blob(['\ufeff'+buildReport()], {type:'text/plain;charset=utf-8'}));
+}
+function buildReport(){
+  const r=currentResult;
+  let out=[];
+  out.push('BÁO CÁO ĐỌC MÃ VBA OFFLINE');
+  out.push('File: '+(r.fileName||''));
+  out.push('Dung lượng: '+formatBytes(r.fileSize||0));
+  out.push('Dạng gói: '+(r.packageType||''));
+  out.push('Đường dẫn VBA: '+(r.vbaPath||''));
+  out.push('Codepage: '+(r.codePage||''));
+  out.push('Số module: '+((r.modules||[]).length));
+  out.push('Số sheet đọc offline: '+(r.workbook && r.workbook.sheets ? r.workbook.sheets.length : 0));
+  out.push('Document đọc offline: '+(r.document && r.document.kind ? (r.document.kind+' · '+((r.document.parts||[]).length)+' phần/slide') : 'Không có'));
+  out.push('Text/Script: '+(r.textFile ? ((r.textFile.encoding||'')+' · '+((r.textFile.variants||[]).length)+' bản xem/giải mã') : 'Không có'));
+  if(r.protection){
+    out.push('\nTRẠNG THÁI BẢO VỆ VBAPROJECT:');
+    out.push('- PROJECT stream: '+(r.protection.hasProjectStream?'Có':'Không thấy'));
+    out.push('- Dấu hiệu DPB/CMG/GC: '+([r.protection.hasDPB?'DPB':'',r.protection.hasCMG?'CMG':'',r.protection.hasGC?'GC':''].filter(Boolean).join(', ') || 'Không thấy'));
+    out.push('- Kết luận khóa: '+(r.protection.locked?'Có dấu hiệu khóa/mật khẩu VBAProject':'Chưa thấy dấu hiệu khóa'));
+    out.push('- Chữ ký VBA: '+(r.protection.hasSignature?('Có: '+r.protection.sigEntries.join(', ')):'Không thấy'));
+    if(r.protection.advice && r.protection.advice.length){ out.push('- Khuyến nghị:'); r.protection.advice.forEach(a=>out.push('  + '+a)); }
+  }
+  if(r.workbook && r.workbook.sheets && r.workbook.sheets.length){ out.push('\nDANH SÁCH SHEET:'); r.workbook.sheets.forEach(s=>out.push(`- ${s.name} | ${s.state||'visible'} | ${s.maxRow||0} dòng x ${s.maxCol||0} cột | ${s.path||''}`)); }
+  if(r.document && r.document.kind){ out.push('\nDOCUMENT: '+r.document.kind); out.push('- Phần/slide: '+((r.document.parts||[]).length)); out.push('- Ảnh đọc được: '+(r.document.imageCount||0)); if(r.document.warnings&&r.document.warnings.length) r.document.warnings.forEach(w=>out.push('- Cảnh báo: '+w)); }
+  if(r.textFile){ out.push('\nTEXT/SCRIPT:'); out.push('- Mã hóa đọc được: '+(r.textFile.encoding||'')); out.push('- Số bản xem/giải mã: '+((r.textFile.variants||[]).length)); (r.textFile.variants||[]).forEach((v,i)=>out.push(`  ${i+1}. ${v.name} · ${(v.text||'').length} ký tự · ${v.note||''}`)); }
+  if((r.warnings||[]).length){ out.push('\nCẢNH BÁO:'); r.warnings.forEach(w=>out.push('- '+w)); }
+  out.push('\nDANH SÁCH MODULE:');
+  for(const m of (r.modules||[])){
+    out.push(`\n[${m.moduleName}] stream=${m.streamName}, dòng=${m.lines}, ký tự=${m.chars}, offset=${m.offset}`);
+    if(m.suspicious.length){
+      out.push('  Từ khóa cần kiểm tra:');
+      m.suspicious.forEach(x=>out.push(`  - ${x.label}, dòng ${x.line}: ${x.sample}`));
+    } else out.push('  Chưa thấy từ khóa nghi vấn theo bộ lọc cơ bản.');
+  }
+  out.push('\nGhi chú: Công cụ chỉ đọc tĩnh, không chạy macro. Từ khóa nghi vấn không đồng nghĩa với mã độc; cần kiểm tra thủ công theo ngữ cảnh.');
+  return out.join('\r\n');
+}
+
+let crcTable=null;
+function makeCrcTable(){
+  const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; }
+  return t;
+}
+function crc32(bytes){
+  if(!crcTable) crcTable=makeCrcTable();
+  let c=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) c=crcTable[(c^bytes[i])&255]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function dosDateTime(d=new Date()){
+  const time=(d.getHours()<<11)|(d.getMinutes()<<5)|Math.floor(d.getSeconds()/2);
+  const date=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate();
+  return {time,date};
+}
+function createStoreZip(files){
+  const locals=[], centrals=[]; let offset=0; const dt=dosDateTime();
+  for(const f of files){
+    const nameBytes=utf8Bytes(f.name); const data=toUint8(f.data); const crc=crc32(data);
+    const lh=new Uint8Array(30+nameBytes.length);
+    putU32(lh,0,0x04034b50); putU16(lh,4,20); putU16(lh,6,0x0800); putU16(lh,8,0); putU16(lh,10,dt.time); putU16(lh,12,dt.date);
+    putU32(lh,14,crc); putU32(lh,18,data.length); putU32(lh,22,data.length); putU16(lh,26,nameBytes.length); putU16(lh,28,0); lh.set(nameBytes,30);
+    locals.push(lh,data);
+    const cd=new Uint8Array(46+nameBytes.length);
+    putU32(cd,0,0x02014b50); putU16(cd,4,20); putU16(cd,6,20); putU16(cd,8,0x0800); putU16(cd,10,0); putU16(cd,12,dt.time); putU16(cd,14,dt.date);
+    putU32(cd,16,crc); putU32(cd,20,data.length); putU32(cd,24,data.length); putU16(cd,28,nameBytes.length); putU16(cd,30,0); putU16(cd,32,0); putU16(cd,34,0); putU16(cd,36,0); putU32(cd,38,0); putU32(cd,42,offset); cd.set(nameBytes,46);
+    centrals.push(cd); offset += lh.length + data.length;
+  }
+  const centralOffset=offset; const central=concatArrays(centrals); const eocd=new Uint8Array(22);
+  putU32(eocd,0,0x06054b50); putU16(eocd,8,files.length); putU16(eocd,10,files.length); putU32(eocd,12,central.length); putU32(eocd,16,centralOffset); putU16(eocd,20,0);
+  return concatArrays([...locals, central, eocd]);
+}
+
+$('fileInput').addEventListener('change', e=>{ const f=e.target.files && e.target.files[0]; if(f) analyzeFile(f); });
+const dz=$('dropZone');
+['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
+dz.addEventListener('drop', e=>{ const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(f){ $('fileInput').files=e.dataTransfer.files; analyzeFile(f); } });
+
+let deferredInstallPrompt = null;
+const APP_VERSION = '2026.06.03-pwa-07';
+function setPwaStatus(msg){ const el=$('pwaStatus'); if(el) el.textContent=msg; }
+window.addEventListener('beforeinstallprompt', (event)=>{
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  const btn=$('btnInstallPwa'); if(btn) btn.disabled=false;
+  setPwaStatus('PWA: có thể cài đặt ứng dụng offline.');
+});
+async function installPwaApp(){
+  if(!deferredInstallPrompt){ setPwaStatus('PWA: trình duyệt chưa cho phép cài đặt. Hãy mở bằng http://localhost hoặc HTTPS.'); return; }
+  deferredInstallPrompt.prompt();
+  const choice = await deferredInstallPrompt.userChoice.catch(()=>null);
+  deferredInstallPrompt = null;
+  const btn=$('btnInstallPwa'); if(btn) btn.disabled=true;
+  setPwaStatus(choice && choice.outcome==='accepted' ? 'PWA: đã gửi yêu cầu cài đặt.' : 'PWA: người dùng chưa cài đặt.');
+}
+async function initPwa(){
+  if(!('serviceWorker' in navigator)) { setPwaStatus('PWA: trình duyệt không hỗ trợ Service Worker.'); return; }
+  if(location.protocol==='file:') { setPwaStatus('PWA: cần chạy qua http://localhost hoặc HTTPS để cache offline. Mở trực tiếp file vẫn đọc VBA/Sheet được.'); return; }
+  try{
+    const reg = await navigator.serviceWorker.register('./sw.js');
+    setPwaStatus('PWA: đã bật cache offline · phiên bản '+APP_VERSION);
+    reg.addEventListener('updatefound', ()=>{
+      const nw=reg.installing;
+      if(!nw) return;
+      nw.addEventListener('statechange', ()=>{
+        if(nw.state==='installed' && navigator.serviceWorker.controller){
+          setPwaStatus('PWA: có bản mới. Bấm “Kiểm tra cập nhật” để nạp.');
+        }
+      });
+    });
+  }catch(err){
+    setPwaStatus('PWA: chưa đăng ký được Service Worker - '+(err && err.message ? err.message : err));
+  }
+}
+async function checkPwaUpdate(){
+  if(!('serviceWorker' in navigator)) { setPwaStatus('PWA: trình duyệt không hỗ trợ Service Worker.'); return; }
+  if(location.protocol==='file:') { setPwaStatus('PWA: kiểm tra cập nhật cần chạy qua http://localhost hoặc HTTPS, không phải file://'); return; }
+  try{
+    setPwaStatus('PWA: đang kiểm tra bản cập nhật...');
+    const reg = await navigator.serviceWorker.getRegistration('./') || await navigator.serviceWorker.register('./sw.js');
+    await reg.update();
+    const sw = reg.waiting || reg.installing;
+    if(reg.waiting){
+      reg.waiting.postMessage({type:'SKIP_WAITING'});
+      setPwaStatus('PWA: đã có bản mới, đang tải lại...');
+      setTimeout(()=>location.reload(), 700);
+    }else if(sw){
+      sw.addEventListener('statechange', ()=>{
+        if(sw.state==='installed'){
+          if(reg.waiting){ reg.waiting.postMessage({type:'SKIP_WAITING'}); setTimeout(()=>location.reload(), 700); }
+          else setPwaStatus('PWA: bản hiện tại đã sẵn sàng offline.');
+        }
+      });
+      setPwaStatus('PWA: đang cài bản cập nhật vào cache...');
+    }else{
+      setPwaStatus('PWA: chưa thấy bản mới. Bản hiện tại đã sẵn sàng offline.');
+    }
+  }catch(err){
+    setPwaStatus('PWA: lỗi kiểm tra cập nhật - '+(err && err.message ? err.message : err));
+  }
+}
+navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+  setPwaStatus('PWA: Service Worker mới đã kích hoạt.');
+});
+initPwa();
+
+updateButtons();
+</script>
+</body>
+</html>
