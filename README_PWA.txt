@@ -32,3 +32,9 @@ CẬP NHẬT 2026.06.03-pwa-08-desktop-mobile
 - Thêm nút "Giao diện Mobile/Giao diện PC" ở thanh bên để đổi nhanh.
 - Mặc định trên màn hình nhỏ/PWA dùng bố cục PC: thanh trái + vùng xem phải như desktop, có thể cuộn ngang/phóng to.
 - Tăng CACHE_NAME của Service Worker để điện thoại nhận bản mới khi bấm Kiểm tra cập nhật.
+
+
+BẢN VÁ 2026.06.03-pwa-09-deflate-js:
+- Thêm bộ giải nén ZIP Deflate thuần JavaScript chạy offline.
+- Khắc phục lỗi trên máy/trình duyệt cũ: không giải nén được dữ liệu ZIP deflate khi đọc file Office.
+- Vẫn ưu tiên DecompressionStream nếu trình duyệt hỗ trợ; nếu không sẽ tự chuyển sang JS fallback.

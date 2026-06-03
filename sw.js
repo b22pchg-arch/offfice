@@ -1,5 +1,5 @@
-/* VBA Reader Offline PWA Service Worker - desktop layout fix */
-const CACHE_NAME = 'vba-reader-offline-2026-06-03-08-desktop-mobile';
+/* VBA Reader Offline PWA Service Worker - desktop layout + JS deflate fallback fix */
+const CACHE_NAME = 'vba-reader-offline-2026-06-03-09-deflate-js';
 const APP_SHELL = [
   './',
   './index.html',
