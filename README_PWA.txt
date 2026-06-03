@@ -25,3 +25,10 @@ Bản 2026-06-03-05:
 
 
 Bản 2026-06-03-06: thêm tab Xem Text/Script, đọc .txt/.csv/.vbs/.vbe/.bat/.cmd/.ps1/.reg/.js offline, giải mã tĩnh VBE/Base64/Hex/URL/HTML entities/PowerShell EncodedCommand và xuất ZIP các bản giải mã.
+
+
+CẬP NHẬT 2026.06.03-pwa-08-desktop-mobile
+- Sửa lỗi giao diện PWA trên điện thoại tự chuyển sang bố cục mobile khác máy tính.
+- Thêm nút "Giao diện Mobile/Giao diện PC" ở thanh bên để đổi nhanh.
+- Mặc định trên màn hình nhỏ/PWA dùng bố cục PC: thanh trái + vùng xem phải như desktop, có thể cuộn ngang/phóng to.
+- Tăng CACHE_NAME của Service Worker để điện thoại nhận bản mới khi bấm Kiểm tra cập nhật.

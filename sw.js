@@ -1,5 +1,5 @@
-/* VBA Reader Offline PWA Service Worker - sidebar header layout */
-const CACHE_NAME = 'vba-reader-offline-2026-06-03-07';
+/* VBA Reader Offline PWA Service Worker - desktop layout fix */
+const CACHE_NAME = 'vba-reader-offline-2026-06-03-08-desktop-mobile';
 const APP_SHELL = [
   './',
   './index.html',

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
   <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
@@ -168,6 +168,112 @@
     .decode-note{font-size:12px;color:#cbd5e1;white-space:pre-wrap;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:8px 10px;line-height:1.45}
     @media (max-width:900px){.risk-cards{grid-template-columns:repeat(2,minmax(120px,1fr))}.viewer-display-actions{margin-left:0}.compact-tip{width:100%}}
 
+  
+
+    /* ============================================================
+       FIX PWA MOBILE: giữ bố cục giống máy tính khi chạy trên điện thoại
+       - Các @media(max-width:900px) phía trên vẫn giữ làm chế độ mobile.
+       - Khi body có .force-desktop-layout, toàn bộ bố cục bị ép về dạng PC:
+         thanh bên trái + vùng xem bên phải, tab không xuống hàng, vùng xem cao toàn màn hình.
+       ============================================================ */
+    body.force-desktop-layout{
+      overflow:auto!important;
+      -webkit-text-size-adjust:100%;
+      text-size-adjust:100%;
+    }
+    body.force-desktop-layout main{
+      min-width:1180px!important;
+      width:1180px!important;
+      max-width:none!important;
+      grid-template-areas:"left viewer"!important;
+      grid-template-columns:360px minmax(800px,1fr)!important;
+      gap:12px!important;
+      padding:12px!important;
+      min-height:100vh!important;
+      height:100vh!important;
+      overflow:visible!important;
+    }
+    body.force-desktop-layout main > .card:first-child{
+      grid-area:left!important;
+      display:block!important;
+      overflow:auto!important;
+      height:calc(100vh - 24px)!important;
+      max-height:calc(100vh - 24px)!important;
+    }
+    body.force-desktop-layout main > .viewer-card{
+      grid-area:viewer!important;
+      display:flex!important;
+      flex-direction:column!important;
+      height:calc(100vh - 24px)!important;
+      max-height:calc(100vh - 24px)!important;
+      min-width:0!important;
+    }
+    body.force-desktop-layout .viewer-head{
+      align-items:flex-start!important;
+      flex-wrap:wrap!important;
+    }
+    body.force-desktop-layout .viewer-head-main{
+      min-width:260px!important;
+      flex:1 1 360px!important;
+    }
+    body.force-desktop-layout .viewer-actions{
+      justify-content:flex-end!important;
+    }
+    body.force-desktop-layout .pane-tabs{
+      width:100%!important;
+      display:flex!important;
+      gap:8px!important;
+      align-items:center!important;
+      flex-wrap:nowrap!important;
+      overflow:auto!important;
+      padding:4px!important;
+      border-radius:999px!important;
+    }
+    body.force-desktop-layout .pane-tabs .tabbtn{
+      flex:0 0 auto!important;
+      min-width:118px!important;
+      text-align:center!important;
+      border-radius:999px!important;
+    }
+    body.force-desktop-layout .search{
+      width:auto!important;
+      min-width:220px!important;
+    }
+    body.force-desktop-layout .code-toolbar .search{
+      min-width:300px!important;
+      flex:1 1 360px!important;
+    }
+    body.force-desktop-layout .viewer-control-panel .sheet-controls{
+      grid-template-columns:minmax(220px,340px) auto!important;
+      align-items:end!important;
+    }
+    body.force-desktop-layout .viewer-control-panel .doc-controls{
+      grid-template-columns:auto 1fr auto!important;
+    }
+    body.force-desktop-layout .code-wrap{
+      flex:1 1 auto!important;
+      height:auto!important;
+      min-height:0!important;
+      overflow:hidden!important;
+    }
+    body.force-desktop-layout .module-list{max-height:420px!important;}
+    body.force-desktop-layout .risk-cards{grid-template-columns:repeat(4,minmax(120px,1fr))!important;}
+    body.force-desktop-layout.sidebar-hidden main{
+      min-width:920px!important;
+      width:100vw!important;
+      grid-template-areas:"viewer"!important;
+      grid-template-columns:minmax(0,1fr)!important;
+    }
+    body.force-desktop-layout.sidebar-hidden main > .card:first-child{display:none!important;}
+    body.force-desktop-layout.sidebar-hidden main > .viewer-card{
+      grid-column:1 / -1!important;
+      width:100%!important;
+    }
+    body.force-desktop-layout .sidebar-app .pwa-controls{
+      justify-content:flex-start!important;
+    }
+    #btnLayoutMode{white-space:nowrap;}
+
   </style>
 </head>
 <body>
@@ -179,6 +285,7 @@
       <div class="pwa-controls">
         <button class="btn2" id="btnInstallPwa" onclick="installPwaApp()" disabled>Cài PWA</button>
         <button class="btnwarn" id="btnManualUpdate" onclick="checkPwaUpdate()">Kiểm tra cập nhật</button>
+        <button class="btn2" id="btnLayoutMode" onclick="toggleDesktopLayoutMode()" title="Đổi giữa bố cục PC giống máy tính và bố cục mobile xếp 1 cột">Giao diện PC</button>
         <div class="pwa-status" id="pwaStatus">PWA: đang khởi tạo...</div>
       </div>
     </div>
@@ -2496,8 +2603,59 @@ const dz=$('dropZone');
 ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
 dz.addEventListener('drop', e=>{ const f=e.dataTransfer.files && e.dataTransfer.files[0]; if(f){ $('fileInput').files=e.dataTransfer.files; analyzeFile(f); } });
 
+
+
+/* ============================================================
+   FIX PWA MOBILE LAYOUT
+   Trên điện thoại/PWA, mặc định dùng bố cục PC để giao diện giống máy tính.
+   Người dùng vẫn có thể bấm nút "Giao diện Mobile" để đổi về dạng 1 cột.
+   ============================================================ */
+const LAYOUT_MODE_KEY = 'vba-reader-layout-mode-v2';
+function isSmallTouchScreen(){
+  return (window.matchMedia && window.matchMedia('(max-width: 900px)').matches) || Math.min(window.innerWidth || 0, window.innerHeight || 0) <= 900;
+}
+function isStandalonePwa(){
+  return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+function getSavedLayoutMode(){
+  try { return localStorage.getItem(LAYOUT_MODE_KEY) || ''; } catch(e){ return ''; }
+}
+function saveLayoutMode(mode){
+  try { localStorage.setItem(LAYOUT_MODE_KEY, mode); } catch(e){}
+}
+function defaultLayoutMode(){
+  // Ưu tiên giống PC trên điện thoại/PWA; trên desktop vẫn là PC tự nhiên.
+  return isSmallTouchScreen() ? 'desktop' : 'desktop';
+}
+function applyLayoutMode(mode, persist){
+  const chosen = mode || getSavedLayoutMode() || defaultLayoutMode();
+  const desktop = chosen === 'desktop';
+  document.body.classList.toggle('force-desktop-layout', desktop);
+  const btn = $('btnLayoutMode');
+  if(btn){
+    btn.textContent = desktop ? 'Giao diện Mobile' : 'Giao diện PC';
+    btn.title = desktop ? 'Đang dùng bố cục PC giống máy tính. Bấm để chuyển sang bố cục mobile 1 cột.' : 'Đang dùng bố cục mobile 1 cột. Bấm để chuyển sang bố cục PC giống máy tính.';
+  }
+  if(persist) saveLayoutMode(chosen);
+  setTimeout(()=>{
+    try{
+      if(activePane==='sheet') renderCurrentSheet();
+      else if(activePane==='doc') renderDocumentPane();
+      else if(activePane==='text') renderTextPane();
+      else if(activePane==='security') renderSecurityPane();
+      else updateCodeHighlight(false);
+    }catch(e){}
+  }, 60);
+}
+function toggleDesktopLayoutMode(){
+  const isDesktop = document.body.classList.contains('force-desktop-layout');
+  applyLayoutMode(isDesktop ? 'mobile' : 'desktop', true);
+}
+applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false);
+window.addEventListener('orientationchange', ()=>setTimeout(()=>applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false), 250));
+
 let deferredInstallPrompt = null;
-const APP_VERSION = '2026.06.03-pwa-07';
+const APP_VERSION = '2026.06.03-pwa-08-desktop-mobile';
 function setPwaStatus(msg){ const el=$('pwaStatus'); if(el) el.textContent=msg; }
 window.addEventListener('beforeinstallprompt', (event)=>{
   event.preventDefault();
