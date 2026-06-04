@@ -1,8 +1,9 @@
-/* VBA Reader Offline PWA Service Worker - desktop layout + JS deflate fallback fix */
-const CACHE_NAME = 'vba-reader-offline-2026-06-03-09-deflate-js';
+/* VBA Reader Offline PWA Service Worker - hex patch integrated */
+const CACHE_NAME = 'vba-reader-offline-2026-06-04-13-hex-patch';
 const APP_SHELL = [
   './',
   './index.html',
+  './autounlocker.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -17,7 +18,6 @@ async function cacheAppShell(){
       const res = await fetch(req);
       if (res && res.ok) await cache.put(url, res.clone());
     } catch (err) {
-      // Giữ các file đã cache được; không làm hỏng quá trình cài nếu một icon không tải được.
       console.warn('[SW] Không cache được', url, err);
     }
   }

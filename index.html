@@ -274,6 +274,21 @@
     }
     #btnLayoutMode{white-space:nowrap;}
 
+    .merge-grid{display:grid;grid-template-columns:1fr;gap:8px}
+    .merge-file-line{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .merge-file-name{font-size:12px;color:#cbd5e1;line-height:1.35;word-break:break-word}
+    .merge-select-row{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:8px;align-items:end}
+    @media(max-width:900px){.merge-select-row{grid-template-columns:1fr}}
+
+    .hex-grid{display:grid;grid-template-columns:1fr;gap:9px}
+    .hex-area{width:100%;min-height:72px;resize:vertical;background:#020617;color:#e5e7eb;border:1px solid #334155;border-radius:10px;padding:9px 10px;font-family:Consolas,"Courier New",monospace;font-size:12px;line-height:1.45}
+    .hex-area:focus{outline:2px solid rgba(56,189,248,.45);border-color:#38bdf8}
+    .hex-two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .hex-options{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .hex-options .search{min-width:180px;max-width:260px}
+    .hex-status{max-height:220px;overflow:auto}
+    @media(max-width:900px){.hex-two-col{grid-template-columns:1fr}.hex-options .search{max-width:none;width:100%}}
+
   </style>
 </head>
 <body>
@@ -286,6 +301,7 @@
         <button class="btn2" id="btnInstallPwa" onclick="installPwaApp()" disabled>Cài PWA</button>
         <button class="btnwarn" id="btnManualUpdate" onclick="checkPwaUpdate()">Kiểm tra cập nhật</button>
         <button class="btn2" id="btnLayoutMode" onclick="toggleDesktopLayoutMode()" title="Đổi giữa bố cục PC giống máy tính và bố cục mobile xếp 1 cột">Giao diện PC</button>
+		<button type="button" class="btn2" style="font-size:11px;" title="Mở Unlocker" onclick="window.open('AutoUnlocker.html', '_blank', 'noopener,noreferrer')">BK</button>
         <div class="pwa-status" id="pwaStatus">PWA: đang khởi tạo...</div>
       </div>
     </div>
@@ -338,10 +354,12 @@
       <div class="row mt">
         <button class="btnwarn" id="btnBuildBin" onclick="downloadModifiedVbaBin()" disabled>Tạo vbaProject.bin đã sửa</button>
         <button class="btnok" id="btnBuildOffice" onclick="downloadModifiedOfficeFile()" disabled>Tạo file Excel/Office mới</button>
+        <button class="btnok" id="btnBuildExcelNoVba" onclick="downloadOfficeWithoutVbaMacro()" disabled>Xuất Office sạch VBA/Macro</button>
       </div>
       <label class="checkline mt"><input type="checkbox" id="removeSignature" checked> Khi tạo file Office mới: xóa <code>vbaProjectSignature.bin</code> và quan hệ chữ ký vì chữ ký sẽ mất hiệu lực sau khi sửa VBA</label>
       <div id="writeLog" class="write-log mt">Chưa có thay đổi nào trong bộ nhớ.</div>
       <div class="warnbox mt">Không nên đổi dòng <code>Attribute VB_Name</code>. Bản ghi trực tiếp hiện dùng chế độ an toàn: chỉ ghi được khi stream mới vừa trong vùng lưu trữ hiện có của <code>vbaProject.bin</code>; nếu mã mới quá dài, công cụ sẽ báo lỗi để tránh làm hỏng file.</div>
+      <div class="okbox mt">Nút <b>Xuất Office sạch VBA/Macro</b> tạo bản Office không macro bằng cách giữ nguyên nội dung package OpenXML và loại bỏ <code>vbaProject.bin</code>, chữ ký VBA cùng quan hệ liên quan. Với Excel sẽ giữ trang tính, dữ liệu, công thức, định dạng, sharedStrings/style/calcChain.</div>
     </div>
 
     <h2>5. Khôi phục làm việc khi quên mật khẩu VBAProject</h2>
@@ -351,12 +369,88 @@
       </div>
       <div class="row mt">
         <button class="btnok" id="btnRecoveryZip" onclick="downloadRecoveryPack()" disabled>Xuất gói khôi phục đầy đủ</button>
+        <button class="btnwarn" id="btnFrxZip" onclick="downloadFrxZip()" disabled>Xuất FRX/UserForm</button>
         <button class="btnwarn" id="btnImportGuide" onclick="downloadImportGuide()" disabled>Tải hướng dẫn khôi phục</button>
         <button class="btn2" id="btnCleanSignatureOffice" onclick="downloadSignatureCleanOffice()" disabled>Tạo bản bỏ chữ ký VBA</button>
       </div>
-      <label class="checkline mt"><input type="checkbox" id="includeVbaBinInRecovery"> Kèm <code>vbaProject.bin</code> gốc trong gói khôi phục để lưu trữ nội bộ</label>
+      <label class="checkline mt"><input type="checkbox" id="includeVbaBinInRecovery" checked> Kèm <code>vbaProject.bin</code> gốc trong gói khôi phục. Mục này cần có nếu muốn ghép lại file macro ngay trên HTML mà không mở Office.</label>
       <div id="recoveryPanel" class="recovery-panel mt">Chưa có dữ liệu bảo vệ VBAProject.</div>
-      <div class="warnbox mt">Nếu có module kiểu <code>ThisWorkbook</code>, <code>Sheet</code> hoặc <code>UserForm</code>, việc import tự động có thể chưa phục hồi hoàn toàn giao diện/form. Khi đó hãy dùng mã đã xuất để dán lại thủ công vào đúng object module trong Excel/VBA Editor.</div>
+      <div class="warnbox mt">Nếu có module kiểu <code>ThisWorkbook</code>, <code>Sheet</code> hoặc <code>UserForm</code>, việc import tự động có thể cần kiểm tra lại. Với UserForm, bản mới sẽ cố gắng xuất kèm file <code>.frx</code> nhị phân khi tìm thấy stream giao diện/form trong <code>vbaProject.bin</code>.</div>
+    </div>
+
+    <h2>6. Ghép Office sạch + gói khôi phục</h2>
+    <div class="body">
+      <div class="safe-note">
+        Chức năng này ghép một file Office sạch VBA/Macro với gói khôi phục đầy đủ để tạo lại định dạng macro mong muốn ngay trên HTML. Điều kiện bắt buộc: gói khôi phục phải có <code>original/vbaProject.bin</code>. Nếu gói chỉ có <code>.bas/.frm/.frx</code> thì HTML chưa thể dựng mới <code>vbaProject.bin</code> chuẩn Office 100% mà không mở Office/VBA Editor.
+      </div>
+      <div class="merge-grid mt">
+        <input type="file" id="mergeCleanOfficeInput" accept=".xlsx,.xltx,.xlsm,.xltm,.xlsb,.docx,.dotx,.docm,.dotm,.pptx,.potx,.ppsx,.pptm,.potm,.ppsm,.ppam">
+        <input type="file" id="mergeRecoveryZipInput" accept=".zip">
+        <div class="merge-file-line">
+          <button class="btn2" onclick="selectMergeCleanOffice()">Chọn file Office sạch</button>
+          <span class="merge-file-name" id="mergeCleanOfficeName">Chưa chọn file sạch.</span>
+        </div>
+        <div class="merge-file-line">
+          <button class="btn2" onclick="selectMergeRecoveryZip()">Chọn gói khôi phục đầy đủ</button>
+          <span class="merge-file-name" id="mergeRecoveryZipName">Chưa chọn gói khôi phục.</span>
+        </div>
+        <div class="merge-select-row">
+          <label class="small">Định dạng xuất mong muốn
+            <select class="select" id="mergeTargetExt">
+              <option value="auto">Tự nhận diện từ gói khôi phục</option>
+              <option value="xlsm">Excel Workbook .xlsm</option>
+              <option value="xltm">Excel Template .xltm</option>
+              <option value="xlam">Excel Add-in .xlam</option>
+              <option value="docm">Word Document .docm</option>
+              <option value="dotm">Word Template .dotm</option>
+              <option value="pptm">PowerPoint .pptm</option>
+              <option value="potm">PowerPoint Template .potm</option>
+              <option value="ppsm">PowerPoint Show .ppsm</option>
+              <option value="ppam">PowerPoint Add-in .ppam</option>
+            </select>
+          </label>
+          <div class="row">
+            <button class="btnok" id="btnMergeCleanRecovery" onclick="downloadMergedOfficeFromCleanAndRecovery()" disabled>Ghép thành Office macro</button>
+            <button class="btn2" onclick="clearMergeInputs()">Xóa file ghép</button>
+          </div>
+        </div>
+        <div class="decode-note" id="mergeStatus">Chọn file Office sạch và gói khôi phục đầy đủ để ghép lại.</div>
+      </div>
+      <div class="warnbox mt">Khi ghép bằng <code>vbaProject.bin</code> gốc, mật khẩu/trạng thái khóa VBAProject gốc cũng đi theo. Đây là ghép lại package macro-enabled, không phải phá hoặc gỡ mật khẩu VBAProject.</div>
+    </div>
+
+    <h2>7. Vá HEX vbaProject.bin</h2>
+    <div class="body">
+      <div class="safe-note">
+        Chức năng này vá chính xác một cụm byte HEX trong <code>vbaProject.bin</code>. Để giảm nguy cơ hỏng file, bản vá chỉ cho thay khi HEX cần tìm và HEX thay thế có cùng số byte. Không dùng mục này để phá/gỡ mật khẩu VBAProject.
+      </div>
+      <div class="hex-grid mt">
+        <label class="small">Nguồn vbaProject.bin
+          <select class="select" id="hexPatchSource" onchange="updateHexPatchButtons(false)">
+            <option value="original">Gốc đang đọc từ file</option>
+            <option value="edited" id="hexPatchSourceEdited">Sau sửa module trong bộ nhớ</option>
+          </select>
+        </label>
+        <div class="hex-two-col">
+          <label class="small">HEX cần tìm
+            <textarea class="hex-area" id="hexFindInput" spellcheck="false" placeholder="Ví dụ: 01 02 03 04" oninput="updateHexPatchButtons(false)"></textarea>
+          </label>
+          <label class="small">HEX thay thế cùng số byte
+            <textarea class="hex-area" id="hexReplaceInput" spellcheck="false" placeholder="Ví dụ: AA BB CC DD" oninput="updateHexPatchButtons(false)"></textarea>
+          </label>
+        </div>
+        <div class="hex-options">
+          <input class="search" id="hexPatchOffset" placeholder="Offset tùy chọn: 0x00000000" oninput="updateHexPatchButtons(false)">
+          <label class="checkline"><input type="checkbox" id="hexPatchAllowMultiple" onchange="updateHexPatchButtons(false)"> Cho phép vá nhiều vị trí nếu HEX xuất hiện nhiều lần</label>
+        </div>
+        <div class="row">
+          <button class="btn2" id="btnHexPatchCheck" onclick="checkHexPatchOffsets()" disabled>Kiểm tra vị trí HEX</button>
+          <button class="btnwarn" id="btnDownloadHexPatchedBin" onclick="downloadHexPatchedVbaBin()" disabled>Tải vbaProject_PATCHED.bin</button>
+          <button class="btnok" id="btnDownloadHexPatchedOffice" onclick="downloadHexPatchedOfficeFile()" disabled>Tạo Office mới đã vá HEX</button>
+        </div>
+        <div class="decode-note hex-status" id="hexPatchStatus">Chọn file có vbaProject.bin, nhập HEX cần tìm và HEX thay thế để kiểm tra.</div>
+      </div>
+      <div class="warnbox mt">Sau khi vá HEX, chữ ký VBA cũ không còn đáng tin cậy. Khi tạo Office mới đã vá HEX, HTML sẽ ép xóa <code>vbaProjectSignature.bin</code> và quan hệ chữ ký để tránh Office hiểu nhầm chữ ký còn hợp lệ.</div>
     </div>
   </section>
 
@@ -631,6 +725,7 @@ function renderRecoveryPanel(){
   lines.push('__SRP_* compiled streams: '+(p.hasSrp?'Có':'Không thấy'));
   lines.push('Mã hóa/mật khẩu mở file: '+(p.hasEncryptedPackage?'Có dấu hiệu EncryptedPackage/DataSpaces':'Không thấy dấu hiệu trong phần đã đọc'));
   lines.push('Số module trích được: '+((currentResult.modules||[]).length));
+  lines.push('FRX/UserForm ghép được: '+((currentResult.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length));
   if(p.moduleDecls && p.moduleDecls.length){
     lines.push('\nKhai báo module trong PROJECT stream:');
     p.moduleDecls.slice(0,80).forEach(x=>lines.push('- '+x));
@@ -1017,13 +1112,28 @@ function parseCfbStreams(input){
     let name='';
     if(nameLen>=2 && nameLen<=64){ name=decodeUtf16LE(e.slice(0,nameLen-2)); }
     const type=e[66];
+    const left=u32(e,68), right=u32(e,72), child=u32(e,76);
     const start=u32(e,116);
     const sizeLow=u32(e,120);
     const sizeHigh=u32(e,124);
     const size=sizeHigh ? sizeLow + sizeHigh*0x100000000 : sizeLow;
-    entries.push({idx:off/128,name,type,start,size});
+    entries.push({idx:off/128,name,type,start,size,left,right,child,fullPath:''});
   }
-  const root=entries[0] || {start:END,size:0};
+  const root=entries[0] || {start:END,size:0,child:FREE};
+  (function buildCfbFullPaths(){
+    const invalid=id=>id===FREE || id===END || id==null || id<0 || id>=entries.length;
+    function visitTree(id,parentPath,seen){
+      if(invalid(id) || seen.has(id)) return;
+      seen.add(id);
+      const ent=entries[id];
+      visitTree(ent.left,parentPath,seen);
+      const path=parentPath ? (parentPath+'/'+ent.name) : ent.name;
+      ent.fullPath=path;
+      if(ent.type===1 && !invalid(ent.child)) visitTree(ent.child,path,new Set());
+      visitTree(ent.right,parentPath,seen);
+    }
+    if(!invalid(root.child)) visitTree(root.child,'',new Set());
+  })();
   const miniStream=readFatChain(root.start).slice(0,root.size || 0);
   let miniFat=[];
   if(firstMiniFat!==FREE && firstMiniFat!==END && numMiniFatSectors>0){
@@ -1054,7 +1164,7 @@ function parseCfbStreams(input){
   const streams=[];
   for(const ent of entries){
     if(ent.type===2){
-      try { streams.push({name:ent.name, size:ent.size, start:ent.start, data:readStream(ent)}); }
+      try { streams.push({name:ent.name, fullPath:ent.fullPath||ent.name, size:ent.size, start:ent.start, data:readStream(ent)}); }
       catch(e){ warnings.push('Không đọc được stream '+ent.name+': '+e.message); }
     }
   }
@@ -1192,6 +1302,7 @@ function scanModules(streams, codePage){
       const suspicious=scanSuspicious(best.text);
       modules.push({
         streamName:s.name,
+        streamPath:s.fullPath||s.name,
         moduleName,
         offset:best.off,
         score:best.score,
@@ -1208,6 +1319,121 @@ function scanModules(streams, codePage){
   }
   modules.sort((a,b)=>a.moduleName.localeCompare(b.moduleName,'vi'));
   return modules;
+}
+
+function basenameOnly(path){ return String(path||'').split(/[\\/]/).pop() || ''; }
+function normalizePathKey(s){ return String(s||'').toLowerCase().replace(/\\/g,'/'); }
+function extractFrxReferences(text){
+  const refs=[]; const seen=new Set();
+  const re=/"([^"\r\n]*\.frx)"\s*:\s*([0-9a-fA-F]{1,8})/g;
+  let m;
+  while((m=re.exec(String(text||'')))){
+    const file=basenameOnly(m[1]); const key=file.toLowerCase()+':'+m[2].toLowerCase();
+    if(!seen.has(key)){ seen.add(key); refs.push({file, offset:m[2].toUpperCase()}); }
+  }
+  return refs;
+}
+function isUserFormModule(m){
+  const t=String(m&&m.text||'');
+  return (m&&m.extension==='.frm.txt') || /(^|\n)VERSION\s+5\.00/i.test(t) && /Begin\s+VB\.UserForm/i.test(t) || /OleObjectBlob\s*=\s*"[^"]+\.frx"/i.test(t) || /Attribute\s+VB_Base\s*=\s*"?0\{/i.test(t);
+}
+function collectFrxFiles(result){
+  if(!result || !result.cfb || !result.cfb.streams) return [];
+  const forms=(result.modules||[]).filter(isUserFormModule);
+  const moduleKeys=new Set();
+  for(const m of (result.modules||[])){
+    moduleKeys.add(normalizePathKey(m.streamName));
+    moduleKeys.add(normalizePathKey(m.streamPath));
+  }
+  const candidates=[];
+  for(const s of result.cfb.streams||[]){
+    const n=normalizePathKey(s.name), p=normalizePathKey(s.fullPath||s.name);
+    if(!s.data || !s.data.length) continue;
+    if(moduleKeys.has(n) || moduleKeys.has(p)) continue;
+    if(isSkippableStreamName(s.name)) continue;
+    if(n.startsWith('__srp_') || p.includes('/__srp_')) continue;
+    const last=basenameOnly(p).toLowerCase();
+    let likely = ['o','f','x'].includes(last) || /\/(o|f|x)$/i.test(p);
+    if(!likely && forms.some(m=>p.includes('/'+normalizePathKey(m.streamName)+'/') || p.includes('/'+normalizePathKey(m.moduleName)+'/'))) likely=true;
+    if(likely) candidates.push(s);
+  }
+  const used=new Set(); const out=[];
+  for(const m of forms){
+    const refs=extractFrxReferences(m.text);
+    const wantedName=safeName((refs[0] && refs[0].file) || (m.moduleName+'.frx'));
+    const formKeys=[m.streamPath,m.streamName,m.moduleName].map(normalizePathKey).filter(Boolean);
+    let best=null, bestScore=-1;
+    for(const c of candidates){
+      const p=normalizePathKey(c.fullPath||c.name), n=basenameOnly(p).toLowerCase();
+      const id=p+'|'+c.size;
+      if(used.has(id)) continue;
+      let score=0;
+      for(const k of formKeys){
+        if(k && p.endsWith('/'+k+'/o')) score+=120;
+        if(k && p.endsWith('/'+k+'/f')) score+=100;
+        if(k && p.includes('/'+k+'/')) score+=70;
+        if(k && p.includes(k)) score+=35;
+      }
+      if(n==='o') score+=20; if(n==='f') score+=12; if(refs.length) score+=10;
+      if(score>bestScore){ bestScore=score; best=c; }
+    }
+    if(best && bestScore>=20){
+      const id=normalizePathKey(best.fullPath||best.name)+'|'+best.size; used.add(id);
+      out.push({kind:'matched', formName:m.moduleName, fileName:wantedName, streamName:best.name, streamPath:best.fullPath||best.name, size:best.size, data:best.data, refs, note:'Ghép theo UserForm/stream nhị phân trong vbaProject.bin'});
+    }else if(refs.length){
+      out.push({kind:'missing', formName:m.moduleName, fileName:wantedName, streamName:'', streamPath:'', size:0, data:null, refs, note:'Trong .frm có tham chiếu .frx nhưng chưa tìm được stream nhị phân tương ứng'});
+    }
+  }
+  for(const c of candidates){
+    const id=normalizePathKey(c.fullPath||c.name)+'|'+c.size;
+    if(used.has(id)) continue;
+    const fileName=safeName((c.fullPath||c.name).replace(/[\\/]+/g,'_')) + '.bin';
+    out.push({kind:'candidate', formName:'', fileName, streamName:c.name, streamPath:c.fullPath||c.name, size:c.size, data:c.data, refs:[], note:'Ứng viên stream nhị phân UserForm chưa ghép chắc chắn với .frm'});
+  }
+  return out;
+}
+function hasMatchedFrx(){ return !!(currentResult && (currentResult.frxFiles||[]).some(f=>f.kind==='matched' && f.data)); }
+function buildFrxReport(){
+  const r=currentResult || {}; const files=r.frxFiles || [];
+  const lines=[];
+  lines.push('BÁO CÁO XUẤT FRX / USERFORM');
+  lines.push('File: '+(r.fileName||''));
+  lines.push('Số UserForm phát hiện: '+((r.modules||[]).filter(isUserFormModule).length));
+  lines.push('Số FRX ghép được: '+files.filter(f=>f.kind==='matched'&&f.data).length);
+  lines.push('Số ứng viên nhị phân chưa ghép chắc chắn: '+files.filter(f=>f.kind==='candidate'&&f.data).length);
+  lines.push('Số tham chiếu thiếu stream: '+files.filter(f=>f.kind==='missing').length);
+  lines.push('');
+  for(const f of files){
+    lines.push('['+f.kind.toUpperCase()+'] '+(f.fileName||''));
+    if(f.formName) lines.push('- UserForm: '+f.formName);
+    if(f.streamPath) lines.push('- Stream: '+f.streamPath);
+    lines.push('- Dung lượng: '+formatBytes(f.size||0));
+    if(f.refs&&f.refs.length) lines.push('- Tham chiếu trong .frm: '+f.refs.map(x=>x.file+':'+x.offset).join(', '));
+    if(f.note) lines.push('- Ghi chú: '+f.note);
+    lines.push('');
+  }
+  lines.push('Lưu ý: .frx là dữ liệu nhị phân đi kèm UserForm. Khi import thủ công, hãy để file .frm và .frx cùng thư mục. Nếu file nằm trong _frx_binary_candidates thì cần kiểm tra thủ công vì công cụ chưa ghép chắc chắn với UserForm nào.');
+  return lines.join('\r\n');
+}
+function addFrxFilesToZipList(files, prefix){
+  const list=(currentResult && currentResult.frxFiles) || [];
+  for(const f of list){
+    if(!f.data) continue;
+    if(f.kind==='matched') files.push({name:(prefix||'')+safeName(f.fileName), data:f.data});
+    else if(f.kind==='candidate') files.push({name:(prefix||'')+'_frx_binary_candidates/'+safeName(f.fileName), data:f.data});
+  }
+}
+function downloadFrxZip(){
+  if(!currentResult) return;
+  const files=[];
+  addFrxFilesToZipList(files,'importable/');
+  files.push({name:'_bao_cao_frx_userform.txt', data:utf8Bytes('\ufeff'+buildFrxReport())});
+  const matched=(currentResult.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length;
+  const candidates=(currentResult.frxFiles||[]).filter(f=>f.kind==='candidate'&&f.data).length;
+  if(files.length<=1){ setStatus('Chưa tìm thấy file .frx hoặc stream nhị phân UserForm để xuất.', 'warn'); return; }
+  const zip=createStoreZip(files);
+  setStatus('Đã xuất FRX/UserForm: '+matched+' file .frx ghép được, '+candidates+' ứng viên nhị phân.', matched?'ok':'warn');
+  downloadBlob(recoveryBaseName()+'_FRX_USERFORM.zip', new Blob([zip], {type:'application/zip'}));
 }
 function escapeRegex(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
 
@@ -1860,7 +2086,9 @@ async function analyzeFile(file){
     result.codePage=cp.codePage;
     if(cp.warning) result.warnings.push(cp.warning);
     result.modules=scanModules(result.cfb.streams, result.codePage);
+    result.frxFiles=collectFrxFiles(result);
     if(result.modules.length===0) result.warnings.push('Không trích được module VBA dạng text. Có thể file không có macro, bị mã hóa, hoặc cấu trúc VBA khác thường.');
+    if((result.frxFiles||[]).some(f=>f.kind==='matched')) result.warnings.push('Đã phát hiện dữ liệu .frx/UserForm nhị phân; có thể xuất kèm gói khôi phục để import form đầy đủ hơn.');
     result.protection=detectVbaProjectStatus(result);
     if(result.protection.locked) result.warnings.push('Phát hiện dấu hiệu khóa/mật khẩu VBAProject qua PROJECT stream. Công cụ không đọc/phá mật khẩu gốc; hãy dùng gói khôi phục để lấy lại mã và bảo trì trên bản sao.');
     if(result.protection.hasSignature) result.warnings.push('Phát hiện vbaProjectSignature.bin. Nếu sửa mã VBA, chữ ký cũ sẽ mất hiệu lực.');
@@ -1893,6 +2121,7 @@ function renderSummary(){
     <div>CFB streams</div><div>${r.cfb ? r.cfb.streams.length : 0}</div>
     <div>Codepage</div><div>${r.codePage || 'Không rõ'}</div>
     <div>Module VBA</div><div>${r.modules ? r.modules.length : 0}</div>
+    <div>FRX/UserForm</div><div>${r.frxFiles ? (r.frxFiles.filter(f=>f.kind==='matched'&&f.data).length+' FRX, '+r.frxFiles.filter(f=>f.kind==='candidate'&&f.data).length+' ứng viên') : 'Không có'}</div>
     <div>Sheet Excel</div><div>${r.workbook && r.workbook.sheets ? r.workbook.sheets.length : 0}</div>
     <div>Document</div><div>${r.document && r.document.kind ? (r.document.kind+' · '+((r.document.parts||[]).length)+' phần/slide') : 'Không có'}</div>
     <div>Text/Script</div><div>${r.textFile ? ((r.textFile.encoding||'')+' · '+((r.textFile.variants||[]).length)+' bản xem/giải mã') : 'Không có'}</div>
@@ -1904,6 +2133,7 @@ function renderSummary(){
   if(r.protection && r.protection.locked) addChip('VBAProject có dấu hiệu khóa','warn');
   if(r.protection && r.protection.hasSignature) addChip('Có chữ ký VBA','warn');
   if((r.modules||[]).length) addChip(r.modules.length+' module','ok'); else addChip('0 module','warn');
+  if((r.frxFiles||[]).some(f=>f.kind==='matched'&&f.data)) addChip(r.frxFiles.filter(f=>f.kind==='matched'&&f.data).length+' FRX','ok');
   if(r.workbook && r.workbook.sheets && r.workbook.sheets.length) addChip(r.workbook.sheets.length+' sheet offline','ok');
   if(r.document && r.document.kind && r.document.kind!=='unknown') addChip('Có '+(r.document.kind==='word'?'Word':'PowerPoint')+' offline','ok');
   if(r.textFile) addChip('Text/Script '+((r.textFile.variants||[]).length)+' bản','ok');
@@ -1925,7 +2155,7 @@ function renderModules(){
   box.innerHTML=items.map(({m,i})=>`
     <div class="module-item ${i===currentIndex?'active':''}" onclick="selectModule(${i})">
       <div class="module-title"><span>${m.isEdited?'<span class="dirtydot"></span>':''}${escapeHtml(m.moduleName)}</span><span class="badge ${m.suspicious.length?'warn':'ok'}">${m.suspicious.length?m.suspicious.length+' chú ý':'OK'}</span></div>
-      <div class="module-meta">Stream: ${escapeHtml(m.streamName)} · ${m.lines} dòng · offset ${m.offset} · score ${m.score.toFixed(1)}</div>
+      <div class="module-meta">Stream: ${escapeHtml(m.streamPath||m.streamName)} · ${m.lines} dòng · offset ${m.offset} · score ${m.score.toFixed(1)}</div>
     </div>`).join('');
 }
 
@@ -2278,9 +2508,12 @@ function updateButtons(){
   $('btnDownloadEditedModule').disabled=!one; $('btnEditedZip').disabled=!has;
   const canBuild=!!(currentResult && currentResult.vbaBin && has && hasEdits() && !editMode);
   $('btnBuildBin').disabled=!canBuild; $('btnBuildOffice').disabled=!canBuild || currentResult.packageType!=='OpenXML ZIP';
+  if($('btnBuildExcelNoVba')) $('btnBuildExcelNoVba').disabled=!isExcelOpenXmlPackage();
   if($('btnRecoveryZip')) $('btnRecoveryZip').disabled=!has;
+  if($('btnFrxZip')) $('btnFrxZip').disabled=!(currentResult && currentResult.frxFiles && currentResult.frxFiles.some(f=>f.data));
   if($('btnImportGuide')) $('btnImportGuide').disabled=!currentResult;
   if($('btnCleanSignatureOffice')) $('btnCleanSignatureOffice').disabled=!(currentResult && currentResult.packageType==='OpenXML ZIP' && currentResult.vbaBin && currentResult.protection && currentResult.protection.hasSignature);
+  if(typeof updateHexPatchButtons==='function') updateHexPatchButtons(true);
   updateWriteLog();
 }
 
@@ -2321,7 +2554,7 @@ function clearAll(resetInput=true){
   if($('docMeta')) $('docMeta').textContent='Chọn file Word hoặc PowerPoint để xem nội dung.';
   if($('docPaneTitle')) $('docPaneTitle').textContent='Chưa có document';
   if($('docSearchInput')) $('docSearchInput').value='';
-  $('writeLog').textContent='Chưa có thay đổi nào trong bộ nhớ.'; if($('recoveryPanel')) $('recoveryPanel').textContent='Chưa có dữ liệu bảo vệ VBAProject.'; lastModifiedBinCache=null; lastModifiedBinKey=''; setStatus('Chưa chọn file.'); updateButtons();
+  $('writeLog').textContent='Chưa có thay đổi nào trong bộ nhớ.'; if($('recoveryPanel')) $('recoveryPanel').textContent='Chưa có dữ liệu bảo vệ VBAProject.'; if($('hexPatchStatus')) $('hexPatchStatus').textContent='Chọn file có vbaProject.bin, nhập HEX cần tìm và HEX thay thế để kiểm tra.'; lastModifiedBinCache=null; lastModifiedBinKey=''; setStatus('Chưa chọn file.'); updateButtons();
 }
 
 
@@ -2365,7 +2598,10 @@ function revertCurrentModule(){
   lastModifiedBinCache=null; lastModifiedBinKey='';
   updateCodeHighlight(true); renderKeywordPanel(m); renderModules(); updateButtons(); setStatus('Đã hoàn nguyên module '+m.moduleName+'.','ok');
 }
-function cfbEntryByName(cfb,name){ return (cfb.entries||[]).find(e=>e.type===2 && e.name===name); }
+function cfbEntryByName(cfb,name){
+  const key=normalizePathKey(name);
+  return (cfb.entries||[]).find(e=>e.type===2 && (e.name===name || e.fullPath===name || normalizePathKey(e.name)===key || normalizePathKey(e.fullPath)===key));
+}
 function updateDirEntrySizeInFile(out, cfb, ent, newSize){
   const rel=ent.idx*128;
   const sectorIndex=Math.floor(rel/cfb.sectorSize);
@@ -2432,9 +2668,9 @@ function buildModifiedVbaProjectBin(){
   const cfb=parseCfbStreams(out);
   const logs=[]; const warnings=[];
   for(const m of edited){
-    const ent=cfbEntryByName(cfb,m.streamName);
+    const ent=cfbEntryByName(cfb,m.streamPath||m.streamName);
     if(!ent) throw new Error('Không tìm thấy stream module '+m.streamName+' trong vbaProject.bin.');
-    const streamObj=cfb.streams.find(s=>s.name===m.streamName);
+    const streamObj=cfb.streams.find(s=>s.name===m.streamName || s.fullPath===(m.streamPath||''));
     if(!streamObj) throw new Error('Không đọc được dữ liệu stream '+m.streamName+'.');
     const built=buildEditedModuleStream(streamObj.data,m,currentResult.codePage||1252);
     warnings.push(...built.warnings);
@@ -2497,6 +2733,85 @@ async function downloadModifiedOfficeFile(){
   }catch(e){ updateWriteLog('Lỗi tạo file Office mới:\n'+e.message); setStatus('Lỗi tạo file Office mới: '+e.message,'bad'); }
 }
 
+function isExcelOpenXmlPackage(){
+  return !!(currentResult && currentResult.packageType==='OpenXML ZIP' && currentResult.workbook && currentResult.workbook.sheets && currentResult.workbook.sheets.length);
+}
+function excelNoVbaExt(name){
+  const base=safeName(String(name||'excel').replace(/\.[^.]+$/,''));
+  if(/\.xltm$/i.test(name)) return base+'_KHONG_VBAPROJECT.xltx';
+  if(/\.xlsb$/i.test(name)) return base+'_KHONG_VBAPROJECT.xlsb';
+  return base+'_KHONG_VBAPROJECT.xlsx';
+}
+function isVbaRelatedEntryName(name){
+  const n=String(name||'').replace(/\\/g,'/').toLowerCase();
+  return /(^|\/)vbaproject\.bin$/.test(n) ||
+         /(^|\/)vbaprojectsignature\.bin$/.test(n) ||
+         /(^|\/)vbaproject\.bin\.rels$/.test(n) ||
+         /(^|\/)vbaprojectsignature\.bin\.rels$/.test(n);
+}
+function removeXmlSelfClosingTags(txt, tagName, predicateRegex){
+  const re=new RegExp('<'+tagName+'\\b[^>]*\\/>','gi');
+  return String(txt||'').replace(re, tag => predicateRegex.test(tag) ? '' : tag);
+}
+function cleanContentTypesForNoVba(data, targetExt){
+  let txt=decodeUtf8(data);
+  txt=removeXmlSelfClosingTags(txt,'Override',/(vbaProject(?:Signature)?\.bin|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  txt=removeXmlSelfClosingTags(txt,'Default',/(vbaProject(?:Signature)?\.bin|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  if(/\.xltx$/i.test(targetExt)){
+    txt=txt.replace(/application\/vnd\.ms-excel\.template\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml');
+  }else if(/\.xlsx$/i.test(targetExt)){
+    txt=txt.replace(/application\/vnd\.ms-excel\.sheet\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+    txt=txt.replace(/application\/vnd\.ms-excel\.template\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+    txt=txt.replace(/application\/vnd\.ms-excel\.addin\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+  }
+  return utf8Bytes(txt);
+}
+function cleanRelationshipXmlForNoVba(data){
+  let txt=decodeUtf8(data);
+  txt=removeXmlSelfClosingTags(txt,'Relationship',/(vbaProject(?:Signature)?\.bin|\/vbaProject(?:Signature)?\b|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  return utf8Bytes(txt);
+}
+async function buildExcelWithoutVbaProjectBytes(){
+  if(!isExcelOpenXmlPackage() || !currentResult.packageBytes) throw new Error('Chỉ xuất được bản Excel sạch VBAProject cho file Excel OpenXML có trang tính. Định dạng .xls cũ không hỗ trợ trong chế độ này.');
+  const outName=excelNoVbaExt(currentResult.fileName||'excel.xlsm');
+  const files=[]; const removed=[]; const touched=[];
+  for(const e of currentResult.entries){
+    if(e.name.endsWith('/')){ files.push({name:e.name,data:new Uint8Array(0)}); continue; }
+    if(isVbaRelatedEntryName(e.name)){ removed.push(e.name); continue; }
+    let data=await zipExtract(currentResult.packageBytes,e);
+    if(e.name==='[Content_Types].xml'){
+      data=cleanContentTypesForNoVba(data,outName); touched.push(e.name);
+    }else if(/\.rels$/i.test(e.name)){
+      const before=data.length;
+      const cleaned=cleanRelationshipXmlForNoVba(data);
+      if(cleaned.length!==before || decodeUtf8(data)!==decodeUtf8(cleaned)) touched.push(e.name);
+      data=cleaned;
+    }
+    files.push({name:e.name,data});
+  }
+  if(!removed.length && !(currentResult && currentResult.vbaPath)){
+    // Vẫn cho phép xuất bản sạch đối với file đã là .xlsx, nhưng ghi log rõ ràng.
+  }
+  return {zip:createStoreZip(files), outName, removed, touched};
+}
+async function downloadExcelWithoutVbaProject(){
+  try{
+    const built=await buildExcelWithoutVbaProjectBytes();
+    const lines=[];
+    lines.push('Đã tạo bản Excel không có VBAProject.');
+    lines.push('Giữ nguyên package trang tính/dữ liệu/công thức; chỉ loại bỏ phần VBAProject và quan hệ/chữ ký liên quan.');
+    lines.push('File xuất: '+built.outName);
+    lines.push(built.removed.length ? ('Đã xóa: '+built.removed.join(', ')) : 'Không thấy vbaProject.bin trong package; đã xuất lại bản Excel sạch theo cấu trúc hiện có.');
+    if(built.touched.length) lines.push('Đã cập nhật quan hệ/content type: '+Array.from(new Set(built.touched)).join(', '));
+    updateWriteLog(lines.join('\n'));
+    setStatus('Đã xuất Excel không VBAProject. Hãy mở kiểm tra công thức/trang tính trên bản sao trước khi dùng chính thức.', 'ok');
+    downloadBlob(built.outName, new Blob([built.zip], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  }catch(e){
+    setStatus('Lỗi xuất Excel không VBAProject: '+e.message, 'bad');
+    updateWriteLog('Lỗi xuất Excel không VBAProject:\n'+e.message);
+  }
+}
+
 function recoveryBaseName(){
   return safeName(((currentResult && currentResult.fileName) || 'vba').replace(/\.[^.]+$/,''));
 }
@@ -2532,7 +2847,7 @@ function makeRecoveryGuide(){
   lines.push('');
   lines.push('3) Lưu ý với ThisWorkbook/Sheet/UserForm');
   lines.push('- Code của ThisWorkbook, Sheet, Chart thường nên dán lại vào đúng object module trong file mới, thay vì import thành class module độc lập.');
-  lines.push('- UserForm có thể cần file .frx/giao diện form; bản HTML chủ yếu khôi phục phần code text nên cần kiểm tra thủ công.');
+  lines.push('- UserForm thường cần file .frx nhị phân đi kèm .frm. Bản này sẽ cố gắng xuất .frx vào thư mục importable/ và để cạnh file .frm; nếu chưa ghép chắc chắn, dữ liệu sẽ nằm trong importable/_frx_binary_candidates để kiểm tra thủ công.');
   lines.push('- Nếu file gốc có chữ ký VBA, chữ ký cũ sẽ mất hiệu lực sau khi sửa mã. Hãy ký lại bằng chứng thư hợp lệ nếu cần.');
   lines.push('');
   lines.push('4) Trạng thái file đã phân tích');
@@ -2543,6 +2858,7 @@ function makeRecoveryGuide(){
   lines.push('- Dấu hiệu DPB/CMG/GC: '+([p.hasDPB?'DPB':'',p.hasCMG?'CMG':'',p.hasGC?'GC':''].filter(Boolean).join(', ') || 'Không thấy'));
   lines.push('- Chữ ký VBA: '+(p.hasSignature?'Có':'Không thấy'));
   lines.push('- Số module trích được: '+((r.modules||[]).length));
+  lines.push('- Số FRX/UserForm ghép được: '+((r.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length));
   lines.push('');
   lines.push('5) Yêu cầu để chạy import_modules_helper.bas');
   lines.push('- Excel phải cho phép: File > Options > Trust Center > Trust Center Settings > Macro Settings > Trust access to the VBA project object model.');
@@ -2593,7 +2909,8 @@ function buildRecoveryManifest(){
     note:'Static recovery package. Does not reveal, crack, remove, or bypass VBAProject password.',
     fileName:r.fileName || '', fileSize:r.fileSize || 0, packageType:r.packageType || '', vbaPath:r.vbaPath || '', codePage:r.codePage || '',
     protection:r.protection || null,
-    modules:(r.modules||[]).map(m=>({moduleName:m.moduleName, streamName:m.streamName, lines:m.lines, chars:m.chars, offset:m.offset, edited:!!m.isEdited, exportText:'modules_text_utf8/'+safeName(m.moduleName)+m.extension, importable:'importable/'+safeName(m.moduleName)+importableExtForModule(m), suspicious:m.suspicious||[]}))
+    modules:(r.modules||[]).map(m=>({moduleName:m.moduleName, streamName:m.streamName, streamPath:m.streamPath||m.streamName, lines:m.lines, chars:m.chars, offset:m.offset, edited:!!m.isEdited, exportText:'modules_text_utf8/'+safeName(m.moduleName)+m.extension, importable:'importable/'+safeName(m.moduleName)+importableExtForModule(m), suspicious:m.suspicious||[]})),
+    frxFiles:(r.frxFiles||[]).map(f=>({kind:f.kind, formName:f.formName||'', fileName:f.fileName||'', streamName:f.streamName||'', streamPath:f.streamPath||'', size:f.size||0, refs:f.refs||[], note:f.note||''}))
   };
 }
 function downloadRecoveryPack(){
@@ -2604,11 +2921,13 @@ function downloadRecoveryPack(){
   files.push({name:'bao_cao_phan_tich_vba.txt', data:utf8Bytes('\ufeff'+buildReport())});
   files.push({name:'import_modules_helper.bas', data:utf8Bytes(makeImportHelperBas())});
   files.push({name:'manifest.json', data:utf8Bytes(JSON.stringify(buildRecoveryManifest(), null, 2))});
+  if(currentResult.frxFiles && currentResult.frxFiles.length) files.push({name:'_bao_cao_frx_userform.txt', data:utf8Bytes('\ufeff'+buildFrxReport())});
   for(const m of currentResult.modules){
     files.push({name:'modules_text_utf8/'+safeName(m.moduleName)+m.extension, data:utf8Bytes('\ufeff'+m.text)});
     let encoded=encodeByCodePage(m.text, currentResult.codePage || 1252);
     files.push({name:'importable/'+safeName(m.moduleName)+importableExtForModule(m), data:encoded});
   }
+  addFrxFilesToZipList(files,'importable/');
   if($('includeVbaBinInRecovery') && $('includeVbaBinInRecovery').checked && currentResult.vbaBin){
     files.push({name:'original/vbaProject.bin', data:currentResult.vbaBin});
   }
@@ -2662,6 +2981,8 @@ function downloadVbaBin(){
 function downloadAllZip(){
   if(!currentResult || !currentResult.modules.length) return;
   const files=currentResult.modules.map(m=>({name:safeName(m.moduleName)+m.extension, data:utf8Bytes('\ufeff'+m.text)}));
+  addFrxFilesToZipList(files,'frx/');
+  if(currentResult.frxFiles && currentResult.frxFiles.length) files.push({name:'_bao_cao_frx_userform.txt', data:utf8Bytes('\ufeff'+buildFrxReport())});
   files.push({name:'_bao_cao_phan_tich.txt', data:utf8Bytes('\ufeff'+buildReport())});
   const zip=createStoreZip(files);
   downloadBlob(safeName((currentResult.fileName||'vba').replace(/\.[^.]+$/,''))+'_VBA_modules.zip', new Blob([zip], {type:'application/zip'}));
@@ -2680,6 +3001,7 @@ function buildReport(){
   out.push('Đường dẫn VBA: '+(r.vbaPath||''));
   out.push('Codepage: '+(r.codePage||''));
   out.push('Số module: '+((r.modules||[]).length));
+  out.push('FRX/UserForm ghép được: '+((r.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length));
   out.push('Số sheet đọc offline: '+(r.workbook && r.workbook.sheets ? r.workbook.sheets.length : 0));
   out.push('Document đọc offline: '+(r.document && r.document.kind ? (r.document.kind+' · '+((r.document.parts||[]).length)+' phần/slide') : 'Không có'));
   out.push('Text/Script: '+(r.textFile ? ((r.textFile.encoding||'')+' · '+((r.textFile.variants||[]).length)+' bản xem/giải mã') : 'Không có'));
@@ -2742,6 +3064,464 @@ function createStoreZip(files){
   return concatArrays([...locals, central, eocd]);
 }
 
+
+/* ============================================================
+   VÁ HEX vbaProject.bin
+   - Chỉ thay thế cùng số byte để không làm lệch cấu trúc CFB/OLE.
+   - Có thể tải riêng vbaProject_PATCHED.bin hoặc tạo Office mới đã vá HEX.
+   ============================================================ */
+function normalizeHexPatchText(hex){
+  return String(hex||'').replace(/0x/gi,'').replace(/[^0-9a-fA-F]/g,'').toUpperCase();
+}
+function hexPatchInputToBytes(hex, label){
+  const clean=normalizeHexPatchText(hex);
+  if(!clean) return new Uint8Array(0);
+  if(clean.length%2) throw new Error((label||'HEX')+' phải đủ cặp ký tự 00-FF.');
+  const out=new Uint8Array(clean.length/2);
+  for(let i=0;i<out.length;i++) out[i]=parseInt(clean.slice(i*2,i*2+2),16);
+  return out;
+}
+function formatHexPatchOffset(n){
+  return '0x'+(Number(n)>>>0).toString(16).toUpperCase().padStart(8,'0');
+}
+function parseHexPatchOffset(value){
+  const raw=String(value||'').trim();
+  if(!raw) return null;
+  let n;
+  if(/^0x[0-9a-f]+$/i.test(raw)) n=parseInt(raw.slice(2),16);
+  else if(/^[0-9a-f]+h$/i.test(raw)) n=parseInt(raw.slice(0,-1),16);
+  else if(/^[0-9]+$/.test(raw)) n=parseInt(raw,10);
+  else if(/^[0-9a-f]+$/i.test(raw)) n=parseInt(raw,16);
+  else throw new Error('Offset không hợp lệ. Dùng dạng 0x1A2B, 1A2Bh hoặc số thập phân.');
+  if(!Number.isFinite(n) || n<0) throw new Error('Offset không hợp lệ.');
+  return n;
+}
+function bytesMatchAt(data, pattern, offset){
+  if(offset<0 || offset+pattern.length>data.length) return false;
+  for(let i=0;i<pattern.length;i++) if(data[offset+i]!==pattern[i]) return false;
+  return true;
+}
+function findHexPatchOffsets(data, pattern, storeLimit=1200){
+  const offsets=[]; let count=0;
+  if(!pattern.length || pattern.length>data.length) return {count:0, offsets, truncated:false};
+  outer: for(let i=0;i<=data.length-pattern.length;i++){
+    for(let j=0;j<pattern.length;j++) if(data[i+j]!==pattern[j]) continue outer;
+    count++;
+    if(offsets.length<storeLimit) offsets.push(i);
+  }
+  return {count, offsets, truncated:count>offsets.length};
+}
+function getHexPatchSourceBytes(){
+  if(!currentResult || !currentResult.vbaBin) throw new Error('Chưa có vbaProject.bin để vá HEX. Hãy chọn file Office có VBA trước.');
+  const src=$('hexPatchSource') ? $('hexPatchSource').value : 'original';
+  if(src==='edited'){
+    if(editMode) throw new Error('Đang ở chế độ sửa module. Hãy lưu hoặc hủy sửa trước khi vá HEX.');
+    if(!hasEdits()) throw new Error('Chưa có module nào được sửa trong bộ nhớ để tạo nguồn vbaProject.bin sau sửa.');
+    const built=buildModifiedVbaProjectBin();
+    return {bytes:built.bytes, label:'vbaProject.bin sau sửa module trong bộ nhớ', buildLog:built};
+  }
+  return {bytes:currentResult.vbaBin, label:'vbaProject.bin gốc đang đọc từ file', buildLog:null};
+}
+function analyzeHexPatchTargets(){
+  const source=getHexPatchSourceBytes();
+  const findBytes=hexPatchInputToBytes($('hexFindInput') ? $('hexFindInput').value : '', 'HEX cần tìm');
+  const replaceBytes=hexPatchInputToBytes($('hexReplaceInput') ? $('hexReplaceInput').value : '', 'HEX thay thế');
+  if(!findBytes.length) throw new Error('Chưa nhập HEX cần tìm.');
+  if(!replaceBytes.length) throw new Error('Chưa nhập HEX thay thế.');
+  if(findBytes.length!==replaceBytes.length) throw new Error('HEX cần tìm và HEX thay thế phải cùng số byte. Hiện tại: '+findBytes.length+' byte và '+replaceBytes.length+' byte.');
+  const offset=parseHexPatchOffset($('hexPatchOffset') ? $('hexPatchOffset').value : '');
+  const allowMultiple=!!($('hexPatchAllowMultiple') && $('hexPatchAllowMultiple').checked);
+  let targets=[]; let scan=null; let mode='scan';
+  if(offset!==null){
+    if(offset+findBytes.length>source.bytes.length) throw new Error('Offset vượt quá kích thước vbaProject.bin.');
+    if(!bytesMatchAt(source.bytes, findBytes, offset)) throw new Error('Tại offset '+formatHexPatchOffset(offset)+' không khớp HEX cần tìm.');
+    targets=[offset]; scan={count:1, offsets:[offset], truncated:false}; mode='offset';
+  }else{
+    scan=findHexPatchOffsets(source.bytes, findBytes, 1200);
+    if(scan.count<1) throw new Error('Không tìm thấy cụm HEX cần tìm trong '+source.label+'.');
+    if(!allowMultiple && scan.count!==1) throw new Error('Tìm thấy '+scan.count+' vị trí. Để vá an toàn, hãy nhập offset cụ thể hoặc bật “Cho phép vá nhiều vị trí”.');
+    if(allowMultiple && scan.count>1000) throw new Error('Tìm thấy quá nhiều vị trí ('+scan.count+'). Hãy nhập offset cụ thể để tránh vá nhầm.');
+    targets=scan.offsets.slice(0, scan.count);
+    for(let i=1;i<targets.length;i++){
+      if(targets[i] < targets[i-1] + findBytes.length) throw new Error('Các vị trí tìm thấy bị chồng lấn. Hãy nhập offset cụ thể để vá một vị trí.');
+    }
+  }
+  return {source, findBytes, replaceBytes, targets, scan, mode, allowMultiple};
+}
+function buildHexPatchedVbaBin(){
+  const plan=analyzeHexPatchTargets();
+  const out=new Uint8Array(plan.source.bytes);
+  for(const off of plan.targets) out.set(plan.replaceBytes, off);
+  return {...plan, bytes:out};
+}
+function renderHexPatchPlan(plan, patched){
+  const lines=[];
+  lines.push((patched?'Đã vá HEX.':'Kiểm tra HEX hoàn tất.'));
+  lines.push('Nguồn: '+plan.source.label+' · kích thước '+formatBytes(plan.source.bytes.length));
+  lines.push('Độ dài cụm HEX: '+plan.findBytes.length+' byte.');
+  if(plan.mode==='offset') lines.push('Chế độ: vá theo offset chỉ định.');
+  else lines.push('Số vị trí tìm thấy: '+plan.scan.count+(plan.scan.truncated?' (chỉ liệt kê một phần)':''));
+  lines.push('Số vị trí sẽ vá: '+plan.targets.length+'.');
+  lines.push('Offset: '+plan.targets.slice(0,80).map(formatHexPatchOffset).join(', ')+(plan.targets.length>80?' ...':'') );
+  lines.push('Lưu ý: bản vá cùng độ dài byte nên không làm lệch cấu trúc file, nhưng vẫn cần mở bản sao để kiểm tra trước khi dùng chính thức.');
+  return lines.join('\n');
+}
+function updateHexPatchButtons(silent=true){
+  const hasVba=!!(currentResult && currentResult.vbaBin);
+  const editedOption=$('hexPatchSourceEdited');
+  if(editedOption) editedOption.disabled=!(currentResult && hasEdits && hasEdits() && !editMode);
+  let basicOk=false;
+  try{
+    const a=normalizeHexPatchText($('hexFindInput') ? $('hexFindInput').value : '');
+    const b=normalizeHexPatchText($('hexReplaceInput') ? $('hexReplaceInput').value : '');
+    basicOk=!!(hasVba && a && b && a.length%2===0 && b.length%2===0 && a.length===b.length);
+  }catch(e){ basicOk=false; }
+  if($('btnHexPatchCheck')) $('btnHexPatchCheck').disabled=!(hasVba && normalizeHexPatchText($('hexFindInput') ? $('hexFindInput').value : '').length>=2);
+  if($('btnDownloadHexPatchedBin')) $('btnDownloadHexPatchedBin').disabled=!basicOk;
+  if($('btnDownloadHexPatchedOffice')) $('btnDownloadHexPatchedOffice').disabled=!(basicOk && currentResult && currentResult.packageType==='OpenXML ZIP');
+  if(!silent && $('hexPatchStatus')){
+    if(!hasVba) $('hexPatchStatus').textContent='Chưa có vbaProject.bin để vá HEX.';
+    else if(!basicOk) $('hexPatchStatus').textContent='Nhập HEX cần tìm và HEX thay thế cùng số byte, sau đó bấm “Kiểm tra vị trí HEX”.';
+  }
+}
+function checkHexPatchOffsets(){
+  try{
+    const plan=analyzeHexPatchTargets();
+    const msg=renderHexPatchPlan(plan, false);
+    if($('hexPatchStatus')) $('hexPatchStatus').textContent=msg;
+    updateWriteLog(msg);
+    setStatus('Đã kiểm tra vị trí HEX trong vbaProject.bin.', 'ok');
+    updateHexPatchButtons(true);
+  }catch(e){
+    const msg='Lỗi kiểm tra HEX: '+e.message;
+    if($('hexPatchStatus')) $('hexPatchStatus').textContent=msg;
+    updateWriteLog(msg); setStatus(msg, 'bad');
+  }
+}
+function hexPatchedVbaFileName(){
+  const base=safeName(String(currentResult && currentResult.fileName || 'file').replace(/\.[^.]+$/,''));
+  return base+'_vbaProject_HEX_PATCHED.bin';
+}
+function hexPatchedOfficeFileName(name){
+  const s=String(name||'office.xlsm');
+  if(/\.[^.]+$/.test(s)) return safeName(s.replace(/(\.[^.]+)$/,'_HEX_PATCHED$1'));
+  return safeName(s)+'_HEX_PATCHED.xlsm';
+}
+function downloadHexPatchedVbaBin(){
+  try{
+    const built=buildHexPatchedVbaBin();
+    const msg=renderHexPatchPlan(built, true);
+    if($('hexPatchStatus')) $('hexPatchStatus').textContent=msg;
+    updateWriteLog(msg);
+    setStatus('Đã tạo vbaProject.bin đã vá HEX để tải về.', 'ok');
+    downloadBlob(hexPatchedVbaFileName(), new Blob([built.bytes], {type:'application/octet-stream'}));
+  }catch(e){
+    const msg='Lỗi tạo vbaProject.bin vá HEX: '+e.message;
+    if($('hexPatchStatus')) $('hexPatchStatus').textContent=msg;
+    updateWriteLog(msg); setStatus(msg, 'bad');
+  }
+}
+async function downloadHexPatchedOfficeFile(){
+  try{
+    const built=buildHexPatchedVbaBin();
+    const cb=$('removeSignature');
+    const old=cb ? cb.checked : true;
+    if(cb) cb.checked=true;
+    const off=await buildModifiedOfficeBytes(built.bytes);
+    if(cb) cb.checked=old;
+    const lines=[];
+    lines.push(renderHexPatchPlan(built, true));
+    lines.push('Đã tạo Office mới đã vá HEX. Chữ ký VBA cũ đã được ép loại bỏ vì nội dung vbaProject.bin đã thay đổi.');
+    if(off.removed.length) lines.push('Đã xóa chữ ký/liên kết chữ ký: '+off.removed.join(', '));
+    const msg=lines.join('\n');
+    if($('hexPatchStatus')) $('hexPatchStatus').textContent=msg;
+    updateWriteLog(msg);
+    setStatus('Đã tạo file Office mới đã vá HEX. Hãy mở bản sao để kiểm tra.', 'ok');
+    downloadBlob(hexPatchedOfficeFileName(currentResult.fileName||'office.xlsm'), new Blob([off.zip], {type:'application/vnd.ms-excel.sheet.macroEnabled.12'}));
+  }catch(e){
+    const msg='Lỗi tạo Office đã vá HEX: '+e.message;
+    if($('hexPatchStatus')) $('hexPatchStatus').textContent=msg;
+    updateWriteLog(msg); setStatus(msg, 'bad');
+  }
+}
+
+
+/* ============================================================
+   OFFICE SẠCH VBA/MACRO + GHÉP VỚI GÓI KHÔI PHỤC
+   - Xuất bản Office OpenXML không còn vbaProject.bin/chữ ký VBA.
+   - Ghép file sạch với gói khôi phục có original/vbaProject.bin để tạo lại file macro-enabled.
+   ============================================================ */
+let mergeCleanOfficeFile = null;
+let mergeRecoveryZipFile = null;
+
+function officeExt(name){ const m=/\.([^.]+)$/.exec(String(name||'')); return m ? m[1].toLowerCase() : ''; }
+function isOfficeOpenXmlName(name){ return /\.(xlsx|xlsm|xltx|xltm|xlam|xlsb|docx|docm|dotx|dotm|pptx|pptm|potx|potm|ppsx|ppsm|ppam)$/i.test(String(name||'')); }
+function officeFamilyFromExt(ext){
+  ext=String(ext||'').toLowerCase().replace(/^\./,'');
+  if(/^(xlsx|xlsm|xltx|xltm|xlam|xlsb)$/.test(ext)) return 'excel';
+  if(/^(docx|docm|dotx|dotm)$/.test(ext)) return 'word';
+  if(/^(pptx|pptm|potx|potm|ppsx|ppsm|ppam)$/.test(ext)) return 'ppt';
+  return '';
+}
+function isOfficeOpenXmlPackage(){
+  if(!currentResult || currentResult.packageType!=='OpenXML ZIP' || !currentResult.packageBytes) return false;
+  const name=currentResult.fileName||'';
+  if(isOfficeOpenXmlName(name)) return true;
+  const names=(currentResult.entries||[]).map(e=>String(e.name||'').toLowerCase());
+  return names.includes('xl/workbook.xml') || names.includes('xl/workbook.bin') || names.includes('word/document.xml') || names.includes('ppt/presentation.xml');
+}
+// Giữ tên cũ để không phá các lệnh đang gọi trong updateButtons.
+function isExcelOpenXmlPackage(){ return isOfficeOpenXmlPackage(); }
+function cleanOfficeExt(name){
+  const base=safeName(String(name||'office').replace(/\.[^.]+$/,''));
+  const ext=officeExt(name);
+  const map={xlsm:'xlsx',xltm:'xltx',xlam:'xlsx',docm:'docx',dotm:'dotx',pptm:'pptx',potm:'potx',ppsm:'ppsx',ppam:'pptx'};
+  const outExt=map[ext] || ext || 'zip';
+  return base+'_SACH_VBA_MACRO.'+outExt;
+}
+function macroExtFromCleanName(name){
+  const ext=officeExt(name);
+  const map={xlsx:'xlsm',xltx:'xltm',docx:'docm',dotx:'dotm',pptx:'pptm',potx:'potm',ppsx:'ppsm',xlsb:'xlsb'};
+  return map[ext] || ext || 'xlsm';
+}
+function mimeForOfficeExt(ext){
+  ext=String(ext||'').toLowerCase();
+  const map={
+    xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    xltx:'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
+    xlsm:'application/vnd.ms-excel.sheet.macroEnabled.12',
+    xltm:'application/vnd.ms-excel.template.macroEnabled.12',
+    xlam:'application/vnd.ms-excel.addin.macroEnabled.12',
+    xlsb:'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+    docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    dotx:'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+    docm:'application/vnd.ms-word.document.macroEnabled.12',
+    dotm:'application/vnd.ms-word.template.macroEnabled.12',
+    pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    potx:'application/vnd.openxmlformats-officedocument.presentationml.template',
+    ppsx:'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+    pptm:'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+    potm:'application/vnd.ms-powerpoint.template.macroEnabled.12',
+    ppsm:'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
+    ppam:'application/vnd.ms-powerpoint.addin.macroEnabled.12'
+  };
+  return map[ext] || 'application/octet-stream';
+}
+function escapeRegExp(s){ return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function replaceOrAddOverride(txt, partName, contentType){
+  partName='/' + String(partName||'').replace(/^\/+/, '').replace(/\\/g,'/');
+  const re=new RegExp('<Override\\b(?=[^>]*\\bPartName=["\\\']'+escapeRegExp(partName)+'["\\\'])[^>]*\\/>','i');
+  const tag='<Override PartName="'+partName+'" ContentType="'+contentType+'"/>';
+  if(re.test(txt)) return txt.replace(re, tag);
+  return txt.replace(/<\/Types>\s*$/i, '  '+tag+'\n</Types>');
+}
+function officeMacroProfile(ext, entries){
+  ext=String(ext||'').toLowerCase().replace(/^\./,'');
+  const family=officeFamilyFromExt(ext);
+  const names=(entries||[]).map(e=>String(e.name||'').toLowerCase());
+  if(family==='excel'){
+    const binary=ext==='xlsb' || names.includes('xl/workbook.bin');
+    let mainType='application/vnd.ms-excel.sheet.macroEnabled.main+xml';
+    if(ext==='xltm') mainType='application/vnd.ms-excel.template.macroEnabled.main+xml';
+    if(ext==='xlam') mainType='application/vnd.ms-excel.addin.macroEnabled.main+xml';
+    if(binary) mainType='application/vnd.ms-excel.sheet.binary.macroEnabled.main';
+    return {family, ext, vbaPath:'xl/vbaProject.bin', relsPath: binary?'xl/_rels/workbook.bin.rels':'xl/_rels/workbook.xml.rels', mainPart: binary?'xl/workbook.bin':'xl/workbook.xml', mainContentType:mainType};
+  }
+  if(family==='word'){
+    return {family, ext, vbaPath:'word/vbaProject.bin', relsPath:'word/_rels/document.xml.rels', mainPart:'word/document.xml', mainContentType: ext==='dotm'?'application/vnd.ms-word.template.macroEnabledTemplate.main+xml':'application/vnd.ms-word.document.macroEnabled.main+xml'};
+  }
+  if(family==='ppt'){
+    let mainType='application/vnd.ms-powerpoint.presentation.macroEnabled.main+xml';
+    if(ext==='potm') mainType='application/vnd.ms-powerpoint.template.macroEnabled.main+xml';
+    if(ext==='ppsm') mainType='application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml';
+    if(ext==='ppam') mainType='application/vnd.ms-powerpoint.addin.macroEnabled.main+xml';
+    return {family, ext, vbaPath:'ppt/vbaProject.bin', relsPath:'ppt/_rels/presentation.xml.rels', mainPart:'ppt/presentation.xml', mainContentType:mainType};
+  }
+  throw new Error('Chưa nhận diện được định dạng Office macro cần xuất: '+ext);
+}
+function cleanContentTypesForNoVbaMacro(data, outName){
+  let txt=decodeUtf8(data);
+  txt=removeXmlSelfClosingTags(txt,'Override',/(vbaProject(?:Signature)?\.bin|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  txt=removeXmlSelfClosingTags(txt,'Default',/(vbaProject(?:Signature)?\.bin|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  // Excel
+  txt=txt.replace(/application\/vnd\.ms-excel\.sheet\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+  txt=txt.replace(/application\/vnd\.ms-excel\.template\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml');
+  txt=txt.replace(/application\/vnd\.ms-excel\.addin\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml');
+  // Word
+  txt=txt.replace(/application\/vnd\.ms-word\.document\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml');
+  txt=txt.replace(/application\/vnd\.ms-word\.template\.macroEnabledTemplate\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml');
+  // PowerPoint
+  txt=txt.replace(/application\/vnd\.ms-powerpoint\.presentation\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml');
+  txt=txt.replace(/application\/vnd\.ms-powerpoint\.template\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.presentationml.template.main+xml');
+  txt=txt.replace(/application\/vnd\.ms-powerpoint\.slideshow\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml');
+  txt=txt.replace(/application\/vnd\.ms-powerpoint\.addin\.macroEnabled\.main\+xml/gi,'application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml');
+  return utf8Bytes(txt);
+}
+function addMacroContentTypes(data, profile){
+  let txt=decodeUtf8(data);
+  txt=removeXmlSelfClosingTags(txt,'Override',/(vbaProject(?:Signature)?\.bin|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  txt=removeXmlSelfClosingTags(txt,'Default',/(vbaProject(?:Signature)?\.bin|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  txt=replaceOrAddOverride(txt, profile.mainPart, profile.mainContentType);
+  txt=replaceOrAddOverride(txt, profile.vbaPath, 'application/vnd.ms-office.vbaProject');
+  return utf8Bytes(txt);
+}
+function ensureVbaRelationship(data){
+  let txt=data && data.length ? decodeUtf8(data) : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n</Relationships>';
+  txt=removeXmlSelfClosingTags(txt,'Relationship',/(vbaProject(?:Signature)?\.bin|\/vbaProject(?:Signature)?\b|vnd\.ms-office\.vbaProject|vnd\.ms-office\.vbaProjectSignature)/i);
+  const ids=[]; txt.replace(/\bId=["']rId(\d+)["']/gi, (_,n)=>{ ids.push(parseInt(n,10)||0); return _; });
+  const next=(ids.length?Math.max(...ids):0)+1;
+  const rel='  <Relationship Id="rId'+next+'" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="vbaProject.bin"/>\n';
+  if(/<\/Relationships>\s*$/i.test(txt)) txt=txt.replace(/<\/Relationships>\s*$/i, rel+'</Relationships>');
+  else txt += '\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">\n'+rel+'</Relationships>';
+  return utf8Bytes(txt);
+}
+async function buildOfficeWithoutVbaMacroBytes(){
+  if(!isOfficeOpenXmlPackage()) throw new Error('Chỉ xuất được bản Office sạch VBA/Macro cho file Office OpenXML dạng ZIP. Các định dạng .xls/.doc/.ppt cũ chưa hỗ trợ trong chế độ này.');
+  const outName=cleanOfficeExt(currentResult.fileName||'office');
+  const files=[]; const removed=[]; const touched=[];
+  for(const e of currentResult.entries){
+    if(e.name.endsWith('/')){ files.push({name:e.name,data:new Uint8Array(0)}); continue; }
+    if(isVbaRelatedEntryName(e.name)){ removed.push(e.name); continue; }
+    let data=await zipExtract(currentResult.packageBytes,e);
+    if(e.name==='[Content_Types].xml'){
+      data=cleanContentTypesForNoVbaMacro(data,outName); touched.push(e.name);
+    }else if(/\.rels$/i.test(e.name)){
+      const before=decodeUtf8(data);
+      const cleaned=cleanRelationshipXmlForNoVba(data);
+      if(before!==decodeUtf8(cleaned)) touched.push(e.name);
+      data=cleaned;
+    }
+    files.push({name:e.name,data});
+  }
+  return {zip:createStoreZip(files), outName, removed, touched};
+}
+async function downloadOfficeWithoutVbaMacro(){
+  try{
+    const built=await buildOfficeWithoutVbaMacroBytes();
+    const ext=officeExt(built.outName);
+    const lines=[];
+    lines.push('Đã tạo bản Office sạch VBA/Macro.');
+    lines.push('Giữ nguyên nội dung package OpenXML; chỉ loại bỏ vbaProject.bin, chữ ký VBA và quan hệ liên quan.');
+    lines.push('File xuất: '+built.outName);
+    lines.push(built.removed.length ? ('Đã xóa: '+built.removed.join(', ')) : 'Không thấy vbaProject.bin trong package; đã xuất lại bản sạch theo cấu trúc hiện có.');
+    if(built.touched.length) lines.push('Đã cập nhật quan hệ/content type: '+Array.from(new Set(built.touched)).join(', '));
+    updateWriteLog(lines.join('\n'));
+    setStatus('Đã xuất Office sạch VBA/Macro. Hãy mở kiểm tra bản sao trước khi dùng chính thức.', 'ok');
+    downloadBlob(built.outName, new Blob([built.zip], {type:mimeForOfficeExt(ext)}));
+  }catch(e){
+    setStatus('Lỗi xuất Office sạch VBA/Macro: '+e.message, 'bad');
+    updateWriteLog('Lỗi xuất Office sạch VBA/Macro:\n'+e.message);
+  }
+}
+function downloadExcelWithoutVbaProject(){ return downloadOfficeWithoutVbaMacro(); }
+
+function selectMergeCleanOffice(){ const el=$('mergeCleanOfficeInput'); if(el) el.click(); }
+function selectMergeRecoveryZip(){ const el=$('mergeRecoveryZipInput'); if(el) el.click(); }
+function updateMergeButtons(){ if($('btnMergeCleanRecovery')) $('btnMergeCleanRecovery').disabled=!(mergeCleanOfficeFile && mergeRecoveryZipFile); }
+function clearMergeInputs(){
+  mergeCleanOfficeFile=null; mergeRecoveryZipFile=null;
+  if($('mergeCleanOfficeInput')) $('mergeCleanOfficeInput').value='';
+  if($('mergeRecoveryZipInput')) $('mergeRecoveryZipInput').value='';
+  if($('mergeCleanOfficeName')) $('mergeCleanOfficeName').textContent='Chưa chọn file sạch.';
+  if($('mergeRecoveryZipName')) $('mergeRecoveryZipName').textContent='Chưa chọn gói khôi phục.';
+  if($('mergeStatus')) $('mergeStatus').textContent='Chọn file Office sạch và gói khôi phục đầy đủ để ghép lại.';
+  updateMergeButtons();
+}
+async function readZipEntryByName(zipBytes, entries, regexList){
+  const list=Array.isArray(regexList)?regexList:[regexList];
+  for(const re of list){
+    const ent=entries.find(e=>re.test(String(e.name||'')));
+    if(ent) return {entry:ent, data:await zipExtract(zipBytes, ent)};
+  }
+  return null;
+}
+async function readRecoveryManifest(zipBytes, entries){
+  const found=await readZipEntryByName(zipBytes, entries, [/^manifest\.json$/i, /\/manifest\.json$/i]);
+  if(!found) return null;
+  try{ return JSON.parse(decodeUtf8(found.data).replace(/^\ufeff/,'')); }catch(e){ return null; }
+}
+function chooseMergeTargetExt(cleanFileName, manifest){
+  const selected=$('mergeTargetExt') ? $('mergeTargetExt').value : 'auto';
+  if(selected && selected!=='auto') return selected;
+  const original=(manifest && manifest.fileName) || '';
+  const origExt=officeExt(original);
+  if(/^(xlsm|xltm|xlam|xlsb|docm|dotm|pptm|potm|ppsm|ppam)$/.test(origExt)) return origExt;
+  return macroExtFromCleanName(cleanFileName);
+}
+async function buildMergedOfficeFromCleanAndRecovery(){
+  if(!mergeCleanOfficeFile || !mergeRecoveryZipFile) throw new Error('Chưa chọn đủ file Office sạch và gói khôi phục.');
+  const cleanBytes=new Uint8Array(await mergeCleanOfficeFile.arrayBuffer());
+  const recoveryBytes=new Uint8Array(await mergeRecoveryZipFile.arrayBuffer());
+  if(!isZip(cleanBytes)) throw new Error('File Office sạch không phải package OpenXML ZIP hợp lệ.');
+  if(!isZip(recoveryBytes)) throw new Error('Gói khôi phục không phải file ZIP hợp lệ.');
+  const cleanEntries=parseZipCentralDirectory(cleanBytes);
+  const recoveryEntries=parseZipCentralDirectory(recoveryBytes);
+  const manifest=await readRecoveryManifest(recoveryBytes, recoveryEntries);
+  const vbaFound=await readZipEntryByName(recoveryBytes, recoveryEntries, [/^original\/vbaProject\.bin$/i, /(^|\/)vbaProject\.bin$/i]);
+  if(!vbaFound) throw new Error('Gói khôi phục không có original/vbaProject.bin. Hãy xuất lại gói khôi phục và bật tùy chọn kèm vbaProject.bin gốc. Chỉ .bas/.frm/.frx chưa đủ để dựng lại file Office macro ngay trên HTML.');
+  const targetExt=chooseMergeTargetExt(mergeCleanOfficeFile.name, manifest);
+  const profile=officeMacroProfile(targetExt, cleanEntries);
+  const files=[]; const removed=[]; const touched=[]; const seen=new Set();
+  let hasContentTypes=false, hasRelPart=false, hasMainPart=false;
+  for(const e of cleanEntries){
+    if(e.name.endsWith('/')) continue;
+    const key=String(e.name||'').replace(/\\/g,'/');
+    const keyLower=key.toLowerCase();
+    if(isVbaRelatedEntryName(key)){ removed.push(key); continue; }
+    let data=await zipExtract(cleanBytes,e);
+    if(key==='[Content_Types].xml'){
+      data=addMacroContentTypes(data, profile); touched.push(key); hasContentTypes=true;
+    }else if(keyLower===profile.relsPath.toLowerCase()){
+      data=ensureVbaRelationship(data); touched.push(key); hasRelPart=true;
+    }else if(/\.rels$/i.test(key)){
+      data=cleanRelationshipXmlForNoVba(data);
+    }
+    if(keyLower===profile.mainPart.toLowerCase()) hasMainPart=true;
+    files.push({name:key,data}); seen.add(keyLower);
+  }
+  if(!hasContentTypes) throw new Error('File Office sạch thiếu [Content_Types].xml.');
+  if(!hasMainPart) throw new Error('File sạch không khớp định dạng đích '+targetExt+' vì thiếu phần chính '+profile.mainPart+'.');
+  if(!hasRelPart){ files.push({name:profile.relsPath, data:ensureVbaRelationship(new Uint8Array(0))}); touched.push(profile.relsPath); }
+  if(!seen.has(profile.vbaPath.toLowerCase())) files.push({name:profile.vbaPath, data:vbaFound.data});
+  const base=safeName(String((manifest && manifest.fileName) || mergeCleanOfficeFile.name || 'office').replace(/\.[^.]+$/,''));
+  const outName=base+'_GHEP_KHOI_PHUC.'+targetExt;
+  return {zip:createStoreZip(files), outName, targetExt, profile, removed, touched, manifest, vbaSource:vbaFound.entry.name, vbaSize:vbaFound.data.length};
+}
+async function downloadMergedOfficeFromCleanAndRecovery(){
+  try{
+    if($('mergeStatus')) $('mergeStatus').textContent='Đang ghép file sạch với gói khôi phục...';
+    const built=await buildMergedOfficeFromCleanAndRecovery();
+    const lines=[];
+    lines.push('Đã ghép Office sạch + gói khôi phục.');
+    lines.push('File xuất: '+built.outName);
+    lines.push('Định dạng: .'+built.targetExt+' · vbaProject: '+built.profile.vbaPath+' · nguồn: '+built.vbaSource+' ('+formatBytes(built.vbaSize)+')');
+    if(built.removed.length) lines.push('Đã loại bỏ phần VBA cũ trong file sạch trước khi ghép: '+built.removed.join(', '));
+    if(built.touched.length) lines.push('Đã cập nhật quan hệ/content type: '+Array.from(new Set(built.touched)).join(', '));
+    lines.push('Lưu ý: nếu vbaProject.bin nguồn còn khóa VBAProject thì file ghép cũng giữ trạng thái khóa đó.');
+    updateWriteLog(lines.join('\n'));
+    if($('mergeStatus')) $('mergeStatus').textContent=lines.join('\n');
+    setStatus('Đã ghép thành file Office macro-enabled mà không cần mở Office.', 'ok');
+    downloadBlob(built.outName, new Blob([built.zip], {type:mimeForOfficeExt(built.targetExt)}));
+  }catch(e){
+    const msg='Lỗi ghép Office sạch + gói khôi phục: '+e.message;
+    if($('mergeStatus')) $('mergeStatus').textContent=msg;
+    setStatus(msg, 'bad'); updateWriteLog(msg);
+  }
+}
+
+const mergeCleanEl=$('mergeCleanOfficeInput');
+if(mergeCleanEl) mergeCleanEl.addEventListener('change', e=>{
+  mergeCleanOfficeFile=e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  if($('mergeCleanOfficeName')) $('mergeCleanOfficeName').textContent=mergeCleanOfficeFile ? (mergeCleanOfficeFile.name+' · '+formatBytes(mergeCleanOfficeFile.size||0)) : 'Chưa chọn file sạch.';
+  updateMergeButtons();
+});
+const mergeRecoveryEl=$('mergeRecoveryZipInput');
+if(mergeRecoveryEl) mergeRecoveryEl.addEventListener('change', e=>{
+  mergeRecoveryZipFile=e.target.files && e.target.files[0] ? e.target.files[0] : null;
+  if($('mergeRecoveryZipName')) $('mergeRecoveryZipName').textContent=mergeRecoveryZipFile ? (mergeRecoveryZipFile.name+' · '+formatBytes(mergeRecoveryZipFile.size||0)) : 'Chưa chọn gói khôi phục.';
+  updateMergeButtons();
+});
+
 $('fileInput').addEventListener('change', e=>{ const f=e.target.files && e.target.files[0]; if(f) analyzeFile(f); });
 const dz=$('dropZone');
 ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
@@ -2800,7 +3580,7 @@ applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false);
 window.addEventListener('orientationchange', ()=>setTimeout(()=>applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false), 250));
 
 let deferredInstallPrompt = null;
-const APP_VERSION = '2026.06.03-pwa-09-deflate-js';
+const APP_VERSION = '2026.06.04-pwa-13-hex-patch';
 function setPwaStatus(msg){ const el=$('pwaStatus'); if(el) el.textContent=msg; }
 window.addEventListener('beforeinstallprompt', (event)=>{
   event.preventDefault();

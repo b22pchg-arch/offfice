@@ -38,3 +38,20 @@ BẢN VÁ 2026.06.03-pwa-09-deflate-js:
 - Thêm bộ giải nén ZIP Deflate thuần JavaScript chạy offline.
 - Khắc phục lỗi trên máy/trình duyệt cũ: không giải nén được dữ liệu ZIP deflate khi đọc file Office.
 - Vẫn ưu tiên DecompressionStream nếu trình duyệt hỗ trợ; nếu không sẽ tự chuyển sang JS fallback.
+
+
+CẬP NHẬT 2026-06-04 PWA-10:
+- Thêm nút "Xuất Excel không VBAProject".
+- Bản xuất giữ nguyên worksheet, dữ liệu, công thức, styles, sharedStrings, calcChain; loại bỏ vbaProject.bin, vbaProjectSignature.bin và các relationship/content type liên quan.
+- Dùng để tạo bản Excel sạch macro; không phải chức năng phá/gỡ mật khẩu VBAProject.
+
+
+Bản 2026-06-04-pwa-11: thêm xuất FRX/UserForm từ vbaProject.bin, đưa .frx vào gói khôi phục/importable khi tìm thấy stream nhị phân.
+
+
+Bản 2026.06.04-pwa-12-office-clean-merge-recovery:
+- Đổi tên Xuất Excel không VBAProject thành Xuất Office sạch VBA/Macro.
+- Hỗ trợ xuất sạch VBA/Macro cho Excel/Word/PowerPoint OpenXML.
+- Thêm chức năng ghép file Office sạch với gói khôi phục có original/vbaProject.bin để tạo lại file macro-enabled ngay trên HTML.
+
+Bản 2026-06-04-13: thêm mục Vá HEX vbaProject.bin, cho kiểm tra offset, tải vbaProject_PATCHED.bin và tạo Office mới đã vá HEX.
