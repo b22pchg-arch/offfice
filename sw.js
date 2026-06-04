@@ -3,7 +3,7 @@ const CACHE_NAME = 'vba-reader-offline-2026-06-04-13-hex-patch';
 const APP_SHELL = [
   './',
   './index.html',
-  './autounlocker.html',
+  './AutoUnlocker.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
