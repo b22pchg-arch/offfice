@@ -1,5 +1,5 @@
 /* VBA Reader Offline PWA Service Worker - hex patch integrated */
-const CACHE_NAME = 'vba-reader-offline';
+const CACHE_NAME = 'vba-reader-offline-v19moi';
 const APP_SHELL = [
   './',
   './index.html',
