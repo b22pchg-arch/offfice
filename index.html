@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f172a">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
-  <title>Đọc/Sửa VBA + Xem Sheet/Document/Text + Kiểm tra file offline</title>
+  <title>Đọc/Sửa VBA + Xem Sheet/Document/Text + References + Kiểm tra file offline</title>
   <style>
     :root{
       --bg:#0f172a; --panel:#111827; --panel2:#1f2937; --text:#e5e7eb; --muted:#9ca3af;
@@ -47,6 +47,10 @@
     .warnbox{border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.1);border-radius:12px;padding:10px;font-size:12px;color:#fde68a;line-height:1.45}.okbox{border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.1);border-radius:12px;padding:10px;font-size:12px;color:#bbf7d0;line-height:1.45}
 
     .recovery-panel{font-size:12px;color:#cbd5e1;line-height:1.5;background:#020617;border:1px solid #334155;border-radius:10px;padding:10px;white-space:pre-wrap;max-height:220px;overflow:auto}
+    .references-panel{font-size:12px;color:#cbd5e1;line-height:1.45;background:#020617;border:1px solid #334155;border-radius:10px;padding:10px;max-height:280px;overflow:auto}
+    .references-panel table{min-width:720px;background:#020617;border:1px solid #334155;border-radius:10px;overflow:hidden}
+    .references-panel th,.references-panel td{font-size:11.5px;padding:6px 7px;vertical-align:top;word-break:break-word}
+    .references-panel .ref-note{color:#fbbf24}.references-panel .ref-ok{color:#86efac}.references-panel .ref-bad{color:#fca5a5}
     .safe-note{border:1px solid rgba(56,189,248,.35);background:rgba(56,189,248,.08);border-radius:12px;padding:10px;font-size:12px;color:#bae6fd;line-height:1.45}
     .mini-list{margin:8px 0 0 18px;padding:0;color:#cbd5e1;font-size:12px;line-height:1.5}
     @media(max-width:900px){body{overflow:auto}main{grid-template-columns:1fr;padding:10px;overflow:visible;min-height:100vh}main > .card:first-child{overflow:visible}.module-list{max-height:260px}.code-wrap{height:70vh;min-height:460px}.viewer-head{align-items:stretch}.search{width:100%;min-width:0}.code-toolbar .search{min-width:0;flex-basis:100%}}
@@ -295,7 +299,7 @@
 <main>
   <section class="card">
     <div class="sidebar-app">
-      <h1>Đọc/Sửa VBA + Xem Sheet/Document/Text + Kiểm tra file offline</h1>
+      <h1>Đọc/Sửa VBA + Xem Sheet/Document/Text + References + Kiểm tra file offline</h1>
       <div class="sub">Chạy hoàn toàn trên trình duyệt, không chạy macro. Hỗ trợ Office macro, Word/PowerPoint, Sheet Excel và file text/script như .txt/.csv/.vbs/.vbe/.bat/.cmd/.ps1 để phân tích offline.</div>
       <div class="pwa-controls">
         <button class="btn2" id="btnInstallPwa" onclick="installPwaApp()" disabled>Cài PWA</button>
@@ -312,7 +316,10 @@
         <span>.xlsm / .xlam / .xlsb / .docx / .pptx / .txt / .csv / .vbs / .vbe / .bat / .cmd / .ps1 / .reg / .js</span>
       </label>
       <input type="file" id="fileInput" accept=".xlsm,.xlam,.xlsb,.docx,.docm,.dotm,.pptx,.pptm,.ppam,.potm,.xlsx,.xls,.xla,.doc,.dot,.txt,.csv,.log,.ini,.cfg,.json,.xml,.html,.htm,.vbs,.vbe,.wsf,.wsc,.bat,.cmd,.ps1,.psm1,.psd1,.reg,.js,.jse,.hta,.sql">
+      <input type="file" id="htmlFileInput" accept=".html,.htm,text/html">
       <div class="row mt">
+        <button class="btnok" onclick="openMainFilePicker()">Chọn Office/Text/Script</button>
+        <button class="btnwarn" onclick="openHtmlFilePicker()">Mở file HTML</button>
         <button class="btn2" onclick="clearAll()">Xóa kết quả</button>
         <button class="btn2" id="btnBin" onclick="downloadVbaBin()" disabled>Tải vbaProject.bin</button>
       </div>
@@ -378,7 +385,20 @@
       <div class="warnbox mt">Nếu có module kiểu <code>ThisWorkbook</code>, <code>Sheet</code> hoặc <code>UserForm</code>, việc import tự động có thể cần kiểm tra lại. Với UserForm, bản mới sẽ cố gắng xuất kèm file <code>.frx</code> nhị phân khi tìm thấy stream giao diện/form trong <code>vbaProject.bin</code>.</div>
     </div>
 
-    <h2>6. Ghép Office sạch + gói khôi phục</h2>
+    <h2>6. References / Thư viện tham chiếu</h2>
+    <div class="body">
+      <div class="safe-note">
+        Mục này đọc tĩnh các dòng <code>Reference=</code> và <code>Object=</code> trong <code>PROJECT</code> stream của <code>vbaProject.bin</code>. Báo cáo sẽ được đưa vào gói khôi phục để người dùng biết cần bật/cài lại thư viện nào khi dựng file mới.
+      </div>
+      <div class="row mt">
+        <button class="btn2" id="btnRefreshReferences" onclick="renderReferencesPanel()" disabled>Làm mới References</button>
+        <button class="btnwarn" id="btnReferencesReport" onclick="downloadReferencesReport()" disabled>Xuất báo cáo References</button>
+      </div>
+      <div id="referencesPanel" class="references-panel mt">Chưa có dữ liệu references.</div>
+      <div class="warnbox mt">HTML chỉ đọc và hướng dẫn khôi phục references. Công cụ không tự cài DLL/OCX/TLB vào Windows và không đảm bảo máy mới đã có đủ COM library tương ứng. Khi import module thủ công, hãy mở VBA Editor &gt; Tools &gt; References và đối chiếu theo báo cáo này.</div>
+    </div>
+
+    <h2>7. Ghép Office sạch + gói khôi phục</h2>
     <div class="body">
       <div class="safe-note">
         Chức năng này ghép một file Office sạch VBA/Macro với gói khôi phục đầy đủ để tạo lại định dạng macro mong muốn ngay trên HTML. Điều kiện bắt buộc: gói khôi phục phải có <code>original/vbaProject.bin</code>. Nếu gói chỉ có <code>.bas/.frm/.frx</code> thì HTML chưa thể dựng mới <code>vbaProject.bin</code> chuẩn Office 100% mà không mở Office/VBA Editor.
@@ -419,7 +439,7 @@
       <div class="warnbox mt">Khi ghép bằng <code>vbaProject.bin</code> gốc, mật khẩu/trạng thái khóa VBAProject gốc cũng đi theo. Đây là ghép lại package macro-enabled, không phải phá hoặc gỡ mật khẩu VBAProject.</div>
     </div>
 
-    <h2>7. Vá HEX vbaProject.bin</h2>
+    <h2>8. Vá HEX vbaProject.bin</h2>
     <div class="body">
       <div class="safe-note">
         Chức năng này vá chính xác một cụm byte HEX trong <code>vbaProject.bin</code>. Để giảm nguy cơ hỏng file, bản vá chỉ cho thay khi HEX cần tìm và HEX thay thế có cùng số byte. Không dùng mục này để phá/gỡ mật khẩu VBAProject.
@@ -524,6 +544,7 @@
         <button class="btn2" id="btnPrevTextMatch" onclick="jumpTextMatch(-1)" disabled>↑ Trước</button>
         <button class="btn2" id="btnNextTextMatch" onclick="jumpTextMatch(1)" disabled>↓ Sau</button>
         <span class="match-count" id="textMatchCount">0/0</span>
+        <button class="btnwarn" id="btnOpenHtmlRendered" onclick="openCurrentHtmlRendered()" disabled>Xem HTML dạng trang</button>
         <button class="btn2" id="btnExportText" onclick="downloadTextVariant()" disabled>Xuất TXT đang xem</button>
         <button class="btnwarn" id="btnExportTextAll" onclick="downloadAllTextVariants()" disabled>Xuất ZIP giải mã</button>
       </div>
@@ -574,6 +595,7 @@
       <div id="textPane" class="text-pane hidden">
         <div class="text-topbar">
           <button class="btn2" onclick="renderTextPane()">Làm mới text</button>
+          <button class="btnwarn" onclick="openCurrentHtmlRendered()">Xem HTML dạng trang</button>
           <button class="btn2" onclick="downloadTextVariant()">Xuất TXT</button>
           <button class="btnwarn" onclick="downloadAllTextVariants()">Xuất ZIP tất cả bản giải mã</button>
           <span class="small" id="textPaneTitle">Chưa có text/script</span>
@@ -663,6 +685,122 @@ function decodeMostlyText(bytes, codePage){
   txt=txt.replace(/\u0000/g,'');
   return txt;
 }
+function getVbaProjectText(result){
+  const project=getCfbStream(result && result.cfb,'PROJECT');
+  return project ? decodeMostlyText(project.data, (result && result.codePage) || 1252) : '';
+}
+function referenceWarnNotes(kind, raw, path, desc, guid){
+  const notes=[]; const s=String(raw||''); const p=String(path||''); const d=String(desc||''); const low=(p+' '+d+' '+s).toLowerCase();
+  if(/\bmissing\b/i.test(s) || /^missing:/i.test(d)) notes.push('Có dấu hiệu MISSING/thiếu thư viện khi mở bằng Office.');
+  if(!guid) notes.push('Không tách được GUID, cần kiểm tra thủ công dòng gốc.');
+  if(/^\\\\/.test(p) || /^https?:/i.test(p) || /^file:/i.test(p)) notes.push('Đường dẫn mạng/URL, cần đảm bảo máy khôi phục truy cập được.');
+  if(/\.(ocx)(\b|$)/i.test(p)) notes.push('ActiveX/OCX: máy mới có thể cần cài/đăng ký control tương ứng.');
+  if(/\.(dll)(\b|$)/i.test(p)) notes.push('DLL/Type library: cần đúng phiên bản trên máy khôi phục.');
+  if(/\.(tlb|olb)(\b|$)/i.test(p)) notes.push('Type library: cần đúng phiên bản hoặc bản tương thích.');
+  if(/\b(appdata|temp|downloads|desktop)\b/i.test(p)) notes.push('Đường dẫn cá nhân/tạm; nên thay bằng thư viện chuẩn khi khôi phục.');
+  if(kind==='Object') notes.push('Object/host reference; khi dựng file mới cần kiểm tra đúng ứng dụng chủ và object module.');
+  if(!notes.length) notes.push('Không thấy cảnh báo đặc biệt trong dòng reference này.');
+  return notes;
+}
+function parseVbaReferenceLine(line, index){
+  const rawLine=String(line||'').trim();
+  const m=/^(Reference|Object)\s*=\s*(.*)$/i.exec(rawLine);
+  if(!m) return null;
+  const kind=m[1].charAt(0).toUpperCase()+m[1].slice(1).toLowerCase();
+  const value=m[2].trim();
+  const guidMatch=value.match(/\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}/);
+  const guid=guidMatch ? guidMatch[0].toUpperCase() : '';
+  let version='', lcid='', path='', description='', left=value;
+  if(kind==='Object'){
+    const sem=value.split(';');
+    left=sem.shift() || '';
+    description=sem.join(';').trim();
+    const afterGuid=guid ? left.slice(left.indexOf(guid)+guid.length) : left;
+    const parts=afterGuid.replace(/^#/,'').split('#');
+    version=(parts[0]||'').trim(); lcid=(parts[1]||'').trim(); path=(parts.slice(2).join('#')||'').trim();
+  }else{
+    const afterGuid=guid ? value.slice(value.indexOf(guid)+guid.length) : value;
+    const parts=afterGuid.replace(/^#/,'').split('#');
+    version=(parts[0]||'').trim(); lcid=(parts[1]||'').trim(); path=(parts[2]||'').trim(); description=(parts.slice(3).join('#')||'').trim();
+    if(!description && path && !(/[\\/]|\.(dll|ocx|tlb|olb|exe)$/i.test(path))){ description=path; path=''; }
+  }
+  const name=(description || path || guid || value).replace(/^MISSING:\s*/i,'').trim();
+  const notes=referenceWarnNotes(kind, value, path, description, guid);
+  return {index:index+1, kind, raw:rawLine, guid, version, lcid, path, description, name, notes};
+}
+function extractVbaReferences(result){
+  const projectText=getVbaProjectText(result);
+  const refs=[];
+  if(!projectText) return refs;
+  const lines=projectText.split(/\r\n|\n|\r/);
+  for(let i=0;i<lines.length;i++){
+    if(/^\s*(Reference|Object)\s*=/i.test(lines[i])){
+      const ref=parseVbaReferenceLine(lines[i], refs.length);
+      if(ref){ ref.lineNumber=i+1; refs.push(ref); }
+    }
+  }
+  return refs;
+}
+function buildReferencesReportForResult(result){
+  const r=result || currentResult || {}; const refs=r.references || [];
+  const lines=[];
+  lines.push('BÁO CÁO REFERENCES / THƯ VIỆN THAM CHIẾU VBA');
+  lines.push('=================================================');
+  lines.push('File: '+(r.fileName||''));
+  lines.push('Dạng gói: '+(r.packageType||''));
+  lines.push('Đường dẫn VBA: '+(r.vbaPath||''));
+  lines.push('PROJECT stream: '+(r.protection && r.protection.hasProjectStream ? 'Có' : (getVbaProjectText(r)?'Có':'Không thấy')));
+  lines.push('Số references/object đọc được: '+refs.length);
+  lines.push('');
+  if(!refs.length){
+    lines.push('Không tìm thấy dòng Reference= hoặc Object= trong PROJECT stream.');
+    lines.push('Nếu file có VBA nhưng mục này trống, hãy kiểm tra lại bằng Office/VBA Editor trên bản sao tin cậy.');
+  }else{
+    refs.forEach(ref=>{
+      lines.push('['+ref.index+'] '+ref.kind+' · '+(ref.name||'(không rõ tên)'));
+      lines.push('- GUID: '+(ref.guid||'Không tách được'));
+      lines.push('- Version: '+(ref.version||'Không rõ')+(ref.lcid?(' · LCID: '+ref.lcid):''));
+      lines.push('- Đường dẫn: '+(ref.path||'Không ghi trong PROJECT stream'));
+      if(ref.description) lines.push('- Mô tả/tên: '+ref.description);
+      lines.push('- Ghi chú: '+(ref.notes||[]).join(' | '));
+      lines.push('- Dòng gốc: '+ref.raw);
+      lines.push('');
+    });
+  }
+  lines.push('HƯỚNG DẪN KHÔI PHỤC REFERENCES');
+  lines.push('1. Sau khi import module vào file Office mới, mở VBA Editor bằng Alt+F11.');
+  lines.push('2. Vào Tools > References, đối chiếu danh sách ở trên và bật các thư viện tương ứng.');
+  lines.push('3. Nếu thấy MISSING, hãy cài đúng Office/library/control hoặc bỏ chọn và chọn thư viện tương đương đã có trên máy.');
+  lines.push('4. Với .OCX/.DLL/.TLB ngoài hệ thống, cần kiểm tra nguồn tin cậy và quyền cài đặt/đăng ký trên máy đích.');
+  lines.push('5. Nếu ghép lại bằng original/vbaProject.bin, khai báo references đi theo file nhưng máy mở file vẫn phải có thư viện tương ứng.');
+  lines.push('');
+  lines.push('Ghi chú: Báo cáo này là phân tích tĩnh, không nạp COM và không tự cài reference vào Windows/Office.');
+  return lines.join('\r\n');
+}
+function buildReferencesReport(){ return buildReferencesReportForResult(currentResult); }
+function renderReferencesPanel(){
+  const el=$('referencesPanel'); if(!el) return;
+  if(!currentResult){ el.textContent='Chưa có file để đọc references.'; return; }
+  const refs=currentResult.references || [];
+  if(!refs.length){
+    el.innerHTML='<div class="small">Không tìm thấy dòng <code>Reference=</code> hoặc <code>Object=</code> trong PROJECT stream. Nếu file có VBA, hãy xem báo cáo khôi phục để kiểm tra thủ công.</div>';
+    return;
+  }
+  const warnCount=refs.filter(r=>(r.notes||[]).some(n=>!/Không thấy cảnh báo/i.test(n))).length;
+  let html='<div class="small">Đọc được <b>'+refs.length+'</b> references/object. Cần kiểm tra thủ công: <b>'+warnCount+'</b>.</div>';
+  html+='<table class="mt"><thead><tr><th>#</th><th>Loại</th><th>Tên/Mô tả</th><th>GUID</th><th>Version</th><th>Đường dẫn</th><th>Ghi chú khôi phục</th></tr></thead><tbody>';
+  for(const r of refs){
+    const hasWarn=(r.notes||[]).some(n=>!/Không thấy cảnh báo/i.test(n));
+    html+='<tr><td>'+r.index+'</td><td>'+escapeHtml(r.kind||'')+'</td><td>'+escapeHtml(r.name||r.description||'')+'</td><td>'+escapeHtml(r.guid||'')+'</td><td>'+escapeHtml(r.version||'')+'</td><td>'+escapeHtml(r.path||'')+'</td><td class="'+(hasWarn?'ref-note':'ref-ok')+'">'+escapeHtml((r.notes||[]).join('\n'))+'</td></tr>';
+  }
+  html+='</tbody></table>';
+  el.innerHTML=html;
+}
+function downloadReferencesReport(){
+  if(!currentResult) return;
+  downloadBlob(recoveryBaseName()+'_references_report.txt', new Blob(['\ufeff'+buildReferencesReport()], {type:'text/plain;charset=utf-8'}));
+}
+
 function detectVbaProjectStatus(result){
   const cfb=result.cfb || {streams:[]};
   const streams=cfb.streams || [];
@@ -726,6 +864,7 @@ function renderRecoveryPanel(){
   lines.push('Mã hóa/mật khẩu mở file: '+(p.hasEncryptedPackage?'Có dấu hiệu EncryptedPackage/DataSpaces':'Không thấy dấu hiệu trong phần đã đọc'));
   lines.push('Số module trích được: '+((currentResult.modules||[]).length));
   lines.push('FRX/UserForm ghép được: '+((currentResult.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length));
+  lines.push('References/Object đọc được: '+((currentResult.references||[]).length));
   if(p.moduleDecls && p.moduleDecls.length){
     lines.push('\nKhai báo module trong PROJECT stream:');
     p.moduleDecls.slice(0,80).forEach(x=>lines.push('- '+x));
@@ -2087,6 +2226,8 @@ async function analyzeFile(file){
     if(cp.warning) result.warnings.push(cp.warning);
     result.modules=scanModules(result.cfb.streams, result.codePage);
     result.frxFiles=collectFrxFiles(result);
+    result.references=extractVbaReferences(result);
+    if((result.references||[]).length) result.warnings.push('Đã đọc được '+result.references.length+' reference/object từ PROJECT stream; báo cáo references sẽ được kèm trong gói khôi phục.');
     if(result.modules.length===0) result.warnings.push('Không trích được module VBA dạng text. Có thể file không có macro, bị mã hóa, hoặc cấu trúc VBA khác thường.');
     if((result.frxFiles||[]).some(f=>f.kind==='matched')) result.warnings.push('Đã phát hiện dữ liệu .frx/UserForm nhị phân; có thể xuất kèm gói khôi phục để import form đầy đủ hơn.');
     result.protection=detectVbaProjectStatus(result);
@@ -2107,7 +2248,7 @@ async function analyzeFile(file){
   }
 }
 
-function renderAll(){ renderSummary(); renderModules(); renderRecoveryPanel(); renderSheetSelectors(); renderDocumentSelectors(); renderTextSelectors(); if(activePane==='security') renderSecurityPane(); if(activePane==='text') renderTextPane(); updateButtons(); }
+function renderAll(){ renderSummary(); renderModules(); renderRecoveryPanel(); renderReferencesPanel(); renderSheetSelectors(); renderDocumentSelectors(); renderTextSelectors(); if(activePane==='security') renderSecurityPane(); if(activePane==='text') renderTextPane(); updateButtons(); }
 function renderSummary(){
   const s=$('summary'), chips=$('chips'); chips.innerHTML='';
   if(!currentResult){ s.innerHTML='<div>Trạng thái</div><div>Chưa có dữ liệu.</div>'; return; }
@@ -2122,6 +2263,7 @@ function renderSummary(){
     <div>Codepage</div><div>${r.codePage || 'Không rõ'}</div>
     <div>Module VBA</div><div>${r.modules ? r.modules.length : 0}</div>
     <div>FRX/UserForm</div><div>${r.frxFiles ? (r.frxFiles.filter(f=>f.kind==='matched'&&f.data).length+' FRX, '+r.frxFiles.filter(f=>f.kind==='candidate'&&f.data).length+' ứng viên') : 'Không có'}</div>
+    <div>References</div><div>${r.references ? r.references.length : 0}</div>
     <div>Sheet Excel</div><div>${r.workbook && r.workbook.sheets ? r.workbook.sheets.length : 0}</div>
     <div>Document</div><div>${r.document && r.document.kind ? (r.document.kind+' · '+((r.document.parts||[]).length)+' phần/slide') : 'Không có'}</div>
     <div>Text/Script</div><div>${r.textFile ? ((r.textFile.encoding||'')+' · '+((r.textFile.variants||[]).length)+' bản xem/giải mã') : 'Không có'}</div>
@@ -2134,6 +2276,7 @@ function renderSummary(){
   if(r.protection && r.protection.hasSignature) addChip('Có chữ ký VBA','warn');
   if((r.modules||[]).length) addChip(r.modules.length+' module','ok'); else addChip('0 module','warn');
   if((r.frxFiles||[]).some(f=>f.kind==='matched'&&f.data)) addChip(r.frxFiles.filter(f=>f.kind==='matched'&&f.data).length+' FRX','ok');
+  if((r.references||[]).length) addChip(r.references.length+' references','ok');
   if(r.workbook && r.workbook.sheets && r.workbook.sheets.length) addChip(r.workbook.sheets.length+' sheet offline','ok');
   if(r.document && r.document.kind && r.document.kind!=='unknown') addChip('Có '+(r.document.kind==='word'?'Word':'PowerPoint')+' offline','ok');
   if(r.textFile) addChip('Text/Script '+((r.textFile.variants||[]).length)+' bản','ok');
@@ -2337,6 +2480,11 @@ function collectSecurityFindings(result){
     if(result.protection.locked) addUniqueFinding(findings, makeFinding('info','Bảo vệ VBAProject','PROJECT stream','Có dấu hiệu khóa VBAProject bằng DPB/CMG/GC. Đây không tự nó là mã độc, nhưng cần lưu ý khi bảo trì.'));
     if(result.protection.hasSignature) addUniqueFinding(findings, makeFinding('info','Chữ ký VBA','vbaProjectSignature.bin','Có chữ ký VBA. Nếu mã đã bị sửa sau khi ký, Office có thể cảnh báo chữ ký không hợp lệ.'));
   }
+  for(const ref of result.references||[]){
+    const note=(ref.notes||[]).join(' | ');
+    const sev=/MISSING|OCX|DLL|mạng|URL|cá nhân|tạm/i.test(note)?'medium':'info';
+    addUniqueFinding(findings, makeFinding(sev,'Reference VBA',(ref.kind||'Reference')+' '+(ref.name||ref.guid||''),'Thư viện tham chiếu: '+(ref.guid||'')+' '+(ref.version||'')+(ref.path?(' · '+ref.path):''), note));
+  }
   const autoPatterns=[
     {re:/\b(Workbook_Open|Auto_Open|Document_Open|AutoOpen|Presentation_Open|AutoExec|AutoClose)\b/ig, sev:'high', cat:'Macro tự chạy', detail:'Macro có thể tự chạy khi mở/đóng tài liệu.'},
     {re:/\bShell\b|WScript\.Shell|cmd\.exe|powershell|mshta|rundll32|regsvr32|wscript\.exe|cscript\.exe/ig, sev:'critical', cat:'Lệnh hệ thống', detail:'Có dấu hiệu gọi shell/công cụ hệ thống.'},
@@ -2484,6 +2632,54 @@ function toggleSidebar(){
   const btn=$('btnToggleSidebar'); if(btn) btn.textContent=hidden?'Hiện bên':'Ẩn bên';
 }
 
+
+function openMainFilePicker(){
+  const input=$('fileInput');
+  if(!input) return;
+  input.value='';
+  input.click();
+}
+function openHtmlFilePicker(){
+  const input=$('htmlFileInput');
+  if(!input) return;
+  input.value='';
+  input.click();
+}
+function isCurrentHtmlTextFile(){
+  const name=String((currentResult && currentResult.fileName) || '').toLowerCase();
+  const v=getCurrentTextVariant && getCurrentTextVariant();
+  const text=String((v && v.text) || '');
+  if(/\.(html?|hta)$/.test(name)) return true;
+  return /^\s*(?:<!doctype\s+html|<html[\s>])/i.test(text);
+}
+function escapeHtmlAttr(s){
+  return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function openCurrentHtmlRendered(){
+  const v=getCurrentTextVariant && getCurrentTextVariant();
+  if(!v){ setStatus('Chưa có file HTML để mở.', 'warn'); return; }
+  if(!isCurrentHtmlTextFile()){
+    setStatus('File đang xem không phải HTML/HTM.', 'warn');
+    return;
+  }
+  const raw=String(v.text||'');
+  const title=escapeHtml((currentResult && currentResult.fileName) || 'HTML preview');
+  const preview='<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<title>'+title+' - xem an toàn</title>'
+    +'<style>html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#0f172a;color:#e5e7eb}.bar{padding:8px 12px;background:#111827;border-bottom:1px solid #334155;font-size:13px;line-height:1.35}.bar b{color:#fff}.bar span{color:#fbbf24}.frame{width:100%;height:calc(100vh - 48px);border:0;background:white}</style>'
+    +'</head><body><div class="bar"><b>Xem HTML dạng trang an toàn:</b> '+title+' · <span>script bị tắt trong khung xem để không chạy mã ngoài ý muốn.</span></div>'
+    +'<iframe class="frame" sandbox="allow-forms allow-popups allow-modals" srcdoc="'+escapeHtmlAttr(raw)+'"></iframe></body></html>';
+  const url=URL.createObjectURL(new Blob([preview],{type:'text/html;charset=utf-8'}));
+  const w=window.open(url,'_blank');
+  if(!w){
+    setStatus('Trình duyệt chặn popup. Hãy cho phép popup hoặc giữ nút mở HTML và thử lại.', 'warn');
+    downloadBlob(safeName(((currentResult&&currentResult.fileName)||'html').replace(/\.[^.]+$/,''))+'_SAFE_PREVIEW.html', new Blob([preview],{type:'text/html;charset=utf-8'}));
+  }else{
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    setStatus('Đã mở HTML dạng trang trong khung an toàn, không chạy script.', 'ok');
+  }
+}
+
 function updateButtons(){
   const has=!!(currentResult && currentResult.modules && currentResult.modules.length);
   $('btnZip').disabled=!has; $('btnReport').disabled=!currentResult; $('btnBin').disabled=!(currentResult&&currentResult.vbaBin);
@@ -2504,6 +2700,7 @@ function updateButtons(){
   if($('btnExportDocText')) $('btnExportDocText').disabled=!hasDoc;
   if($('btnExportText')) $('btnExportText').disabled=!hasText;
   if($('btnExportTextAll')) $('btnExportTextAll').disabled=!hasText;
+  if($('btnOpenHtmlRendered')) $('btnOpenHtmlRendered').disabled=!(hasText && isCurrentHtmlTextFile());
   $('btnRevertModule').disabled=!one || !getCurrentModule()?.isEdited || editMode;
   $('btnDownloadEditedModule').disabled=!one; $('btnEditedZip').disabled=!has;
   const canBuild=!!(currentResult && currentResult.vbaBin && has && hasEdits() && !editMode);
@@ -2512,6 +2709,8 @@ function updateButtons(){
   if($('btnRecoveryZip')) $('btnRecoveryZip').disabled=!has;
   if($('btnFrxZip')) $('btnFrxZip').disabled=!(currentResult && currentResult.frxFiles && currentResult.frxFiles.some(f=>f.data));
   if($('btnImportGuide')) $('btnImportGuide').disabled=!currentResult;
+  if($('btnRefreshReferences')) $('btnRefreshReferences').disabled=!currentResult;
+  if($('btnReferencesReport')) $('btnReferencesReport').disabled=!currentResult;
   if($('btnCleanSignatureOffice')) $('btnCleanSignatureOffice').disabled=!(currentResult && currentResult.packageType==='OpenXML ZIP' && currentResult.vbaBin && currentResult.protection && currentResult.protection.hasSignature);
   if(typeof updateHexPatchButtons==='function') updateHexPatchButtons(true);
   updateWriteLog();
@@ -2554,7 +2753,7 @@ function clearAll(resetInput=true){
   if($('docMeta')) $('docMeta').textContent='Chọn file Word hoặc PowerPoint để xem nội dung.';
   if($('docPaneTitle')) $('docPaneTitle').textContent='Chưa có document';
   if($('docSearchInput')) $('docSearchInput').value='';
-  $('writeLog').textContent='Chưa có thay đổi nào trong bộ nhớ.'; if($('recoveryPanel')) $('recoveryPanel').textContent='Chưa có dữ liệu bảo vệ VBAProject.'; if($('hexPatchStatus')) $('hexPatchStatus').textContent='Chọn file có vbaProject.bin, nhập HEX cần tìm và HEX thay thế để kiểm tra.'; lastModifiedBinCache=null; lastModifiedBinKey=''; setStatus('Chưa chọn file.'); updateButtons();
+  $('writeLog').textContent='Chưa có thay đổi nào trong bộ nhớ.'; if($('recoveryPanel')) $('recoveryPanel').textContent='Chưa có dữ liệu bảo vệ VBAProject.'; if($('referencesPanel')) $('referencesPanel').textContent='Chưa có dữ liệu references.'; if($('hexPatchStatus')) $('hexPatchStatus').textContent='Chọn file có vbaProject.bin, nhập HEX cần tìm và HEX thay thế để kiểm tra.'; lastModifiedBinCache=null; lastModifiedBinKey=''; setStatus('Chưa chọn file.'); updateButtons();
 }
 
 
@@ -2836,6 +3035,7 @@ function makeRecoveryGuide(){
   lines.push('- import_modules_helper.bas: macro hỗ trợ import hàng loạt vào workbook/add-in mới.');
   lines.push('- bao_cao_phan_tich_vba.txt: báo cáo trạng thái, module, từ khóa cần kiểm tra.');
   lines.push('- manifest.json: danh sách module và metadata.');
+  lines.push('- references_report.txt: danh sách thư viện tham chiếu đọc từ PROJECT stream và hướng dẫn bật lại references.');
   lines.push('');
   lines.push('2) Cách khôi phục an toàn');
   lines.push('Bước 1: Giải nén gói ZIP khôi phục ra một thư mục riêng.');
@@ -2844,13 +3044,22 @@ function makeRecoveryGuide(){
   lines.push('Bước 4: Nếu muốn import hàng loạt, vào File > Import File... và import import_modules_helper.bas, sau đó chạy ImportModulesFromRecoveryFolder.');
   lines.push('Bước 5: Khi được hỏi thư mục, chọn thư mục importable trong gói đã giải nén.');
   lines.push('Bước 6: Kiểm tra lại từng module, References, UserForm, ThisWorkbook/Sheet code và lưu file mới.');
+  lines.push('Bước 7: Mở file references_report.txt, vào Tools > References trong VBA Editor và bật/cài lại các thư viện tương ứng. Nếu có dòng MISSING hoặc OCX/DLL/TLB ngoài hệ thống, cần kiểm tra trên máy đích trước khi chạy macro.');
   lines.push('');
   lines.push('3) Lưu ý với ThisWorkbook/Sheet/UserForm');
   lines.push('- Code của ThisWorkbook, Sheet, Chart thường nên dán lại vào đúng object module trong file mới, thay vì import thành class module độc lập.');
   lines.push('- UserForm thường cần file .frx nhị phân đi kèm .frm. Bản này sẽ cố gắng xuất .frx vào thư mục importable/ và để cạnh file .frm; nếu chưa ghép chắc chắn, dữ liệu sẽ nằm trong importable/_frx_binary_candidates để kiểm tra thủ công.');
   lines.push('- Nếu file gốc có chữ ký VBA, chữ ký cũ sẽ mất hiệu lực sau khi sửa mã. Hãy ký lại bằng chứng thư hợp lệ nếu cần.');
   lines.push('');
-  lines.push('4) Trạng thái file đã phân tích');
+  lines.push('4) References / thư viện tham chiếu');
+  lines.push('- Gói khôi phục có kèm references_report.txt. Hãy dùng báo cáo này để đối chiếu Tools > References khi tạo file mới.');
+  if((r.references||[]).length){
+    (r.references||[]).forEach(ref=>lines.push('  + '+(ref.kind||'')+': '+(ref.name||ref.description||ref.guid||'Không rõ')+' · '+(ref.guid||'')+' · '+(ref.version||'')+(ref.path?(' · '+ref.path):'')));
+  }else{
+    lines.push('- Không đọc được dòng Reference= hoặc Object= trong PROJECT stream.');
+  }
+  lines.push('');
+  lines.push('5) Trạng thái file đã phân tích');
   lines.push('- File: '+(r.fileName||''));
   lines.push('- Dạng gói: '+(r.packageType||''));
   lines.push('- Có vbaProject.bin: '+(r.vbaBin?'Có':'Không'));
@@ -2859,8 +3068,9 @@ function makeRecoveryGuide(){
   lines.push('- Chữ ký VBA: '+(p.hasSignature?'Có':'Không thấy'));
   lines.push('- Số module trích được: '+((r.modules||[]).length));
   lines.push('- Số FRX/UserForm ghép được: '+((r.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length));
+  lines.push('- Số References/Object đọc được: '+((r.references||[]).length));
   lines.push('');
-  lines.push('5) Yêu cầu để chạy import_modules_helper.bas');
+  lines.push('6) Yêu cầu để chạy import_modules_helper.bas');
   lines.push('- Excel phải cho phép: File > Options > Trust Center > Trust Center Settings > Macro Settings > Trust access to the VBA project object model.');
   lines.push('- Chỉ chạy helper trong file mới hoặc bản sao tin cậy. Không chạy macro từ nguồn không rõ.');
   return lines.join('\r\n');
@@ -2910,7 +3120,8 @@ function buildRecoveryManifest(){
     fileName:r.fileName || '', fileSize:r.fileSize || 0, packageType:r.packageType || '', vbaPath:r.vbaPath || '', codePage:r.codePage || '',
     protection:r.protection || null,
     modules:(r.modules||[]).map(m=>({moduleName:m.moduleName, streamName:m.streamName, streamPath:m.streamPath||m.streamName, lines:m.lines, chars:m.chars, offset:m.offset, edited:!!m.isEdited, exportText:'modules_text_utf8/'+safeName(m.moduleName)+m.extension, importable:'importable/'+safeName(m.moduleName)+importableExtForModule(m), suspicious:m.suspicious||[]})),
-    frxFiles:(r.frxFiles||[]).map(f=>({kind:f.kind, formName:f.formName||'', fileName:f.fileName||'', streamName:f.streamName||'', streamPath:f.streamPath||'', size:f.size||0, refs:f.refs||[], note:f.note||''}))
+    frxFiles:(r.frxFiles||[]).map(f=>({kind:f.kind, formName:f.formName||'', fileName:f.fileName||'', streamName:f.streamName||'', streamPath:f.streamPath||'', size:f.size||0, refs:f.refs||[], note:f.note||''})),
+    references:(r.references||[]).map(ref=>({index:ref.index, kind:ref.kind||'', name:ref.name||'', description:ref.description||'', guid:ref.guid||'', version:ref.version||'', lcid:ref.lcid||'', path:ref.path||'', notes:ref.notes||[], raw:ref.raw||''}))
   };
 }
 function downloadRecoveryPack(){
@@ -2919,6 +3130,7 @@ function downloadRecoveryPack(){
   const base=recoveryBaseName();
   files.push({name:'HUONG_DAN_KHOI_PHUC.txt', data:utf8Bytes('\ufeff'+makeRecoveryGuide())});
   files.push({name:'bao_cao_phan_tich_vba.txt', data:utf8Bytes('\ufeff'+buildReport())});
+  files.push({name:'references_report.txt', data:utf8Bytes('\ufeff'+buildReferencesReport())});
   files.push({name:'import_modules_helper.bas', data:utf8Bytes(makeImportHelperBas())});
   files.push({name:'manifest.json', data:utf8Bytes(JSON.stringify(buildRecoveryManifest(), null, 2))});
   if(currentResult.frxFiles && currentResult.frxFiles.length) files.push({name:'_bao_cao_frx_userform.txt', data:utf8Bytes('\ufeff'+buildFrxReport())});
@@ -3002,6 +3214,7 @@ function buildReport(){
   out.push('Codepage: '+(r.codePage||''));
   out.push('Số module: '+((r.modules||[]).length));
   out.push('FRX/UserForm ghép được: '+((r.frxFiles||[]).filter(f=>f.kind==='matched'&&f.data).length));
+  out.push('References/Object: '+((r.references||[]).length));
   out.push('Số sheet đọc offline: '+(r.workbook && r.workbook.sheets ? r.workbook.sheets.length : 0));
   out.push('Document đọc offline: '+(r.document && r.document.kind ? (r.document.kind+' · '+((r.document.parts||[]).length)+' phần/slide') : 'Không có'));
   out.push('Text/Script: '+(r.textFile ? ((r.textFile.encoding||'')+' · '+((r.textFile.variants||[]).length)+' bản xem/giải mã') : 'Không có'));
@@ -3013,6 +3226,7 @@ function buildReport(){
     out.push('- Chữ ký VBA: '+(r.protection.hasSignature?('Có: '+r.protection.sigEntries.join(', ')):'Không thấy'));
     if(r.protection.advice && r.protection.advice.length){ out.push('- Khuyến nghị:'); r.protection.advice.forEach(a=>out.push('  + '+a)); }
   }
+  if((r.references||[]).length){ out.push('\nREFERENCES / THƯ VIỆN THAM CHIẾU:'); (r.references||[]).forEach(ref=>out.push(`- [${ref.kind}] ${ref.name||''} | GUID=${ref.guid||''} | Version=${ref.version||''} | Path=${ref.path||''} | Ghi chú=${(ref.notes||[]).join(' / ')}`)); }
   if(r.workbook && r.workbook.sheets && r.workbook.sheets.length){ out.push('\nDANH SÁCH SHEET:'); r.workbook.sheets.forEach(s=>out.push(`- ${s.name} | ${s.state||'visible'} | ${s.maxRow||0} dòng x ${s.maxCol||0} cột | ${s.path||''}`)); }
   if(r.document && r.document.kind){ out.push('\nDOCUMENT: '+r.document.kind); out.push('- Phần/slide: '+((r.document.parts||[]).length)); out.push('- Ảnh đọc được: '+(r.document.imageCount||0)); if(r.document.warnings&&r.document.warnings.length) r.document.warnings.forEach(w=>out.push('- Cảnh báo: '+w)); }
   if(r.textFile){ out.push('\nTEXT/SCRIPT:'); out.push('- Mã hóa đọc được: '+(r.textFile.encoding||'')); out.push('- Số bản xem/giải mã: '+((r.textFile.variants||[]).length)); (r.textFile.variants||[]).forEach((v,i)=>out.push(`  ${i+1}. ${v.name} · ${(v.text||'').length} ký tự · ${v.note||''}`)); }
@@ -3522,6 +3736,8 @@ if(mergeRecoveryEl) mergeRecoveryEl.addEventListener('change', e=>{
   updateMergeButtons();
 });
 
+const htmlInputEl=$('htmlFileInput');
+if(htmlInputEl) htmlInputEl.addEventListener('change', e=>{ const f=e.target.files && e.target.files[0]; if(f) analyzeFile(f); });
 $('fileInput').addEventListener('change', e=>{ const f=e.target.files && e.target.files[0]; if(f) analyzeFile(f); });
 const dz=$('dropZone');
 ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
@@ -3580,7 +3796,7 @@ applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false);
 window.addEventListener('orientationchange', ()=>setTimeout(()=>applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false), 250));
 
 let deferredInstallPrompt = null;
-const APP_VERSION = '2026.06.04-pwa-13-hex-patch';
+const APP_VERSION = '2026.06.04-pwa-15-references-recovery';
 function setPwaStatus(msg){ const el=$('pwaStatus'); if(el) el.textContent=msg; }
 window.addEventListener('beforeinstallprompt', (event)=>{
   event.preventDefault();
