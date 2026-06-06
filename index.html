@@ -388,7 +388,7 @@
     <h2>6. References / Thư viện tham chiếu</h2>
     <div class="body">
       <div class="safe-note">
-        Mục này đọc tĩnh các dòng <code>Reference=</code> và <code>Object=</code> trong <code>PROJECT</code> stream của <code>vbaProject.bin</code>. Báo cáo sẽ được đưa vào gói khôi phục để người dùng biết cần bật/cài lại thư viện nào khi dựng file mới.
+        Mục này đọc tĩnh các dòng <code>Reference=</code>/<code>Object=</code> trong <code>PROJECT</code> stream, quét thêm <code>dir</code> stream nhị phân và chế độ quét sâu chuỗi trong <code>vbaProject.bin</code>. Báo cáo sẽ được đưa vào gói khôi phục để người dùng biết cần bật/cài lại thư viện nào khi dựng file mới.
       </div>
       <div class="row mt">
         <button class="btn2" id="btnRefreshReferences" onclick="renderReferencesPanel()" disabled>Làm mới References</button>
@@ -728,7 +728,128 @@ function parseVbaReferenceLine(line, index){
   const notes=referenceWarnNotes(kind, value, path, description, guid);
   return {index:index+1, kind, raw:rawLine, guid, version, lcid, path, description, name, notes};
 }
-function extractVbaReferences(result){
+function bytesToHex4(n){ return ('0000'+Number(n||0).toString(16).toUpperCase()).slice(-4); }
+function getVbaDirDecoded(result){
+  if(result && result.dirDecoded) return result.dirDecoded;
+  const dir=getCfbStream(result && result.cfb,'dir');
+  if(!dir) return null;
+  try{
+    const dec=decompressVba(dir.data,0);
+    if(result) result.dirDecoded=dec;
+    return dec;
+  }catch(e){
+    if(result && result.warnings && !result._dirDecodeWarned){
+      result.warnings.push('Không giải nén được stream dir để đọc references nhị phân: '+e.message);
+      result._dirDecodeWarned=true;
+    }
+    return null;
+  }
+}
+function splitReferenceTextChunks(txt){
+  return String(txt||'')
+    .replace(/\u0000/g,'\n')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFD]+/g,'\n')
+    .split(/\n+/)
+    .map(s=>s.trim())
+    .filter(s=>s.length>=2 && /[A-Za-z0-9À-ỹ{}#\\/:._\- ]/.test(s));
+}
+function isLikelyTextByteForReference(b){ return b===9 || b===32 || (b>=35 && b<=126) || b>=160; }
+function extractAsciiRunsForReference(bytes, minLen=3){
+  bytes=toUint8(bytes||[]);
+  const out=[]; let start=-1;
+  function flush(end){
+    if(start>=0 && end-start>=minLen){
+      try{ out.push(decodeByCodePage(bytes.slice(start,end),1252)); }catch(e){ out.push(Array.from(bytes.slice(start,end)).map(b=>String.fromCharCode(b)).join('')); }
+    }
+    start=-1;
+  }
+  for(let i=0;i<bytes.length;i++){
+    if(isLikelyTextByteForReference(bytes[i])){ if(start<0) start=i; }
+    else flush(i);
+  }
+  flush(bytes.length);
+  return out;
+}
+function extractUtf16RunsForReference(bytes, minLen=3){
+  bytes=toUint8(bytes||[]);
+  const out=[];
+  for(const base of [0,1]){
+    let chars=[];
+    function flush(){ if(chars.length>=minLen) out.push(chars.join('')); chars=[]; }
+    for(let i=base;i+1<bytes.length;i+=2){
+      const c=bytes[i] | (bytes[i+1]<<8);
+      if(c===9 || c===10 || c===13 || (c>=32 && c!==0xFFFD && c<0xD800)) chars.push(String.fromCharCode(c));
+      else flush();
+    }
+    flush();
+  }
+  return out;
+}
+function extractReferencePayloadStrings(bytes, codePage){
+  bytes=toUint8(bytes||[]);
+  const out=[]; const seen=new Set();
+  function addChunks(txt){
+    for(const c of splitReferenceTextChunks(txt)){
+      const key=c.toLowerCase();
+      if(!seen.has(key)){ seen.add(key); out.push(c); }
+    }
+  }
+  const cps=[codePage || 1252, 1252, 1258, 65001];
+  for(const cp of cps){ try{ addChunks(decodeByCodePage(bytes, cp)); }catch(e){} }
+  try{ addChunks(decodeUtf16LE(bytes)); }catch(e){}
+  try{ if(bytes.length>1) addChunks(decodeUtf16LE(bytes.slice(1))); }catch(e){}
+  for(const r of extractAsciiRunsForReference(bytes,2)) addChunks(r);
+  for(const r of extractUtf16RunsForReference(bytes,2)) addChunks(r);
+  return out;
+}
+function extractLibidCandidatesFromPayload(bytes, codePage){
+  const out=[]; const seen=new Set();
+  const guid='\\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\}';
+  const re1=new RegExp('\\*\\\\[A-Za-z]'+guid+'#[^\\x00\\r\\n]+','g');
+  const re2=new RegExp(guid+'#[^\\x00\\r\\n]+','g');
+  for(const txt of extractReferencePayloadStrings(bytes, codePage)){
+    const checks=[txt];
+    const compact=txt.replace(/\s+/g,'');
+    if(compact!==txt) checks.push(compact);
+    for(const source of checks){
+      for(const re of [re1,re2]){
+        re.lastIndex=0;
+        let m;
+        while((m=re.exec(source))){
+          let cand=m[0].trim();
+          cand=cand.replace(/[\x00-\x1F]+.*$/g,'').replace(/[;\s]+$/g,'');
+          if(cand && !seen.has(cand.toLowerCase())){ seen.add(cand.toLowerCase()); out.push(cand); }
+        }
+      }
+    }
+  }
+  return out;
+}
+function extractReferenceNameFromPayload(bytes, codePage){
+  const strings=extractReferencePayloadStrings(bytes, codePage)
+    .map(s=>s.replace(/[\x00-\x1F]+/g,'').trim())
+    .filter(s=>s && !/[{}#]/.test(s) && !/^\d+$/.test(s));
+  strings.sort((a,b)=>b.length-a.length);
+  return strings[0] || '';
+}
+function makeReferenceKey(ref){
+  return [ref.kind||'', ref.guid||'', ref.version||'', ref.path||'', ref.description||'', ref.name||''].join('|').toLowerCase();
+}
+function parseVbaDirRecords(dec){
+  const records=[]; let pos=0; let guard=0;
+  while(pos+6<=dec.length && guard++<40000){
+    const id=u16(dec,pos); const size=u32(dec,pos+2);
+    if(size>8*1024*1024 || pos+6+size>dec.length){ break; }
+    records.push({id, size, offset:pos, data:dec.slice(pos+6,pos+6+size)});
+    pos += 6+size;
+  }
+  return records;
+}
+function referenceRecordLabel(id){
+  const map={0x0016:'ReferenceName',0x0033:'ReferenceOriginal',0x002F:'ReferenceControl',0x000D:'ReferenceRegistered',0x000E:'ReferenceProject'};
+  return map[id] || ('Record 0x'+bytesToHex4(id));
+}
+function extractVbaReferencesFromProjectStream(result){
   const projectText=getVbaProjectText(result);
   const refs=[];
   if(!projectText) return refs;
@@ -736,9 +857,121 @@ function extractVbaReferences(result){
   for(let i=0;i<lines.length;i++){
     if(/^\s*(Reference|Object)\s*=/i.test(lines[i])){
       const ref=parseVbaReferenceLine(lines[i], refs.length);
-      if(ref){ ref.lineNumber=i+1; refs.push(ref); }
+      if(ref){ ref.lineNumber=i+1; ref.source='PROJECT stream'; refs.push(ref); }
     }
   }
+  return refs;
+}
+function extractVbaReferencesFromDirStream(result){
+  const refs=[];
+  const dec=getVbaDirDecoded(result);
+  if(!dec) return refs;
+  const records=parseVbaDirRecords(dec);
+  if(result) result.dirRecordCount=records.length;
+  let pendingName='';
+  let seenProjectModules=false;
+  for(const rec of records){
+    if(rec.id===0x000F){ seenProjectModules=true; break; }
+    if(rec.id===0x0016){ pendingName=extractReferenceNameFromPayload(rec.data, result && result.codePage); continue; }
+    if(![0x000D,0x000E,0x002F,0x0033].includes(rec.id)) continue;
+    const candidates=extractLibidCandidatesFromPayload(rec.data, result && result.codePage);
+    for(const cand of candidates){
+      const ref=parseVbaReferenceLine('Reference='+cand, refs.length);
+      if(!ref) continue;
+      ref.source='dir stream · '+referenceRecordLabel(rec.id)+' @0x'+rec.offset.toString(16).toUpperCase();
+      if(pendingName && (!ref.description || ref.name===ref.guid || /^\*\\/.test(ref.name))){
+        ref.description=pendingName;
+        ref.name=pendingName;
+      }
+      ref.notes=(ref.notes||[]).slice();
+      ref.notes.push('Đọc từ stream dir nhị phân; dùng để đối chiếu khi PROJECT stream không ghi Reference= dạng text.');
+      ref.raw=ref.source+' · '+cand;
+      refs.push(ref);
+    }
+    if(rec.id!==0x0033 && candidates.length) pendingName='';
+  }
+  if(result){
+    result.dirReferencesParsed=refs.length;
+    result.dirProjectModulesSeen=seenProjectModules;
+  }
+  return refs;
+}
+function normalizeReferenceLineCandidate(s){
+  s=String(s||'').replace(/[ �]/g,'').trim();
+  const m=s.match(/(?:Reference|Object)\s*=\s*(.+)$/i);
+  if(!m) return '';
+  let prefix=(/^\s*object\s*=/i.test(s)?'Object':'Reference');
+  let val=m[1].trim();
+  const guidRe='\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\}';
+  const g=new RegExp(guidRe);
+  const gm=g.exec(val);
+  if(gm){
+    const start=Math.max(0, gm.index-3);
+    val=val.slice(start);
+  }
+  val=val.replace(/^[^*{A-Za-z]*(?=(?:\*\\[A-Za-z])?\{)/,'');
+  val=val.replace(/[\r\n]+.*$/,'').replace(/\s{2,}.*$/,'').replace(/;+$/,'').trim();
+  return prefix+'='+val;
+}
+function addReferenceIfValid(target, seen, line, source, fallbackKind){
+  line=normalizeReferenceLineCandidate(line);
+  if(!line) return false;
+  if(fallbackKind && !/^\s*(Reference|Object)\s*=/i.test(line)) line=fallbackKind+'='+line;
+  const ref=parseVbaReferenceLine(line, target.length);
+  if(!ref || (!ref.guid && !ref.name)) return false;
+  ref.source=source || 'quét sâu';
+  ref.notes=(ref.notes||[]).slice();
+  ref.notes.push('Đọc bằng chế độ quét sâu chuỗi nhị phân; dùng để đối chiếu khi bảng References không hiện từ PROJECT/dir chuẩn.');
+  const key=makeReferenceKey(ref);
+  if(seen.has(key)) return false;
+  seen.add(key); target.push(ref); return true;
+}
+function extractReferenceLinesFromTextBlob(txt){
+  const out=[]; const source=String(txt||'');
+  const re=/\b(Reference|Object)\s*=\s*[^\r\n]+/ig;
+  let m; while((m=re.exec(source))){ out.push(m[0]); if(out.length>500) break; }
+  return out;
+}
+function extractVbaReferencesByDeepScan(result, externalSeen){
+  const refs=[]; const seen=externalSeen || new Set();
+  function scanBytes(bytes, source){
+    if(!bytes || !bytes.length) return;
+    for(const s of extractReferencePayloadStrings(bytes, result && result.codePage)){
+      for(const line of extractReferenceLinesFromTextBlob(s)) addReferenceIfValid(refs, seen, line, source);
+      if(/^\s*(Reference|Object)\s*=/i.test(s)) addReferenceIfValid(refs, seen, s, source);
+    }
+    for(const cand of extractLibidCandidatesFromPayload(bytes, result && result.codePage)) addReferenceIfValid(refs, seen, 'Reference='+cand, source);
+  }
+  const cfb=result && result.cfb;
+  const project=getCfbStream(cfb,'PROJECT'); if(project) scanBytes(project.data,'PROJECT stream · quét sâu');
+  const projectWm=getCfbStream(cfb,'PROJECTwm'); if(projectWm) scanBytes(projectWm.data,'PROJECTwm stream · quét sâu');
+  const dir=getCfbStream(cfb,'dir'); if(dir) scanBytes(dir.data,'dir stream nén · quét sâu');
+  const dec=getVbaDirDecoded(result); if(dec) scanBytes(dec,'dir stream giải nén · quét sâu');
+  if(cfb && cfb.streams){
+    let count=0;
+    for(const st of cfb.streams){
+      const n=normalizeCfbName(st.name||'');
+      if(!st.data || st.data.length>2*1024*1024) continue;
+      if(['project','projectwm','dir'].includes(n) || n.startsWith('__srp_')) continue;
+      if(++count>80) break;
+      scanBytes(st.data,'CFB stream '+(st.fullPath||st.name)+' · quét sâu');
+    }
+  }
+  if(result) result.deepReferenceScanCount=refs.length;
+  return refs;
+}
+function extractVbaReferences(result){
+  const refs=[]; const seen=new Set();
+  for(const ref of extractVbaReferencesFromProjectStream(result)){
+    const key=makeReferenceKey(ref); if(!seen.has(key)){ seen.add(key); refs.push(ref); }
+  }
+  for(const ref of extractVbaReferencesFromDirStream(result)){
+    const key=makeReferenceKey(ref); if(!seen.has(key)){ seen.add(key); ref.index=refs.length+1; refs.push(ref); }
+  }
+  for(const ref of extractVbaReferencesByDeepScan(result, seen)){
+    ref.index=refs.length+1; refs.push(ref);
+  }
+  refs.forEach((r,i)=>r.index=i+1);
   return refs;
 }
 function buildReferencesReportForResult(result){
@@ -750,10 +983,10 @@ function buildReferencesReportForResult(result){
   lines.push('Dạng gói: '+(r.packageType||''));
   lines.push('Đường dẫn VBA: '+(r.vbaPath||''));
   lines.push('PROJECT stream: '+(r.protection && r.protection.hasProjectStream ? 'Có' : (getVbaProjectText(r)?'Có':'Không thấy')));
-  lines.push('Số references/object đọc được: '+refs.length);
+  lines.push('Số references/object đọc được từ PROJECT/dir/quét sâu: '+refs.length);
   lines.push('');
   if(!refs.length){
-    lines.push('Không tìm thấy dòng Reference= hoặc Object= trong PROJECT stream.');
+    lines.push('Không tìm thấy Reference/Object trong PROJECT stream, dir stream hoặc chế độ quét sâu.');
     lines.push('Nếu file có VBA nhưng mục này trống, hãy kiểm tra lại bằng Office/VBA Editor trên bản sao tin cậy.');
   }else{
     refs.forEach(ref=>{
@@ -783,11 +1016,11 @@ function renderReferencesPanel(){
   if(!currentResult){ el.textContent='Chưa có file để đọc references.'; return; }
   const refs=currentResult.references || [];
   if(!refs.length){
-    el.innerHTML='<div class="small">Không tìm thấy dòng <code>Reference=</code> hoặc <code>Object=</code> trong PROJECT stream. Nếu file có VBA, hãy xem báo cáo khôi phục để kiểm tra thủ công.</div>';
+    el.innerHTML='<div class="small">Không tìm thấy dòng <code>Reference=</code>/<code>Object=</code> trong PROJECT stream, <code>dir</code> stream và chế độ quét sâu. Có thể file chỉ dùng references mặc định hoặc cấu trúc đặc biệt; hãy kiểm tra thêm bằng VBA Editor nếu cần.</div>';
     return;
   }
   const warnCount=refs.filter(r=>(r.notes||[]).some(n=>!/Không thấy cảnh báo/i.test(n))).length;
-  let html='<div class="small">Đọc được <b>'+refs.length+'</b> references/object. Cần kiểm tra thủ công: <b>'+warnCount+'</b>.</div>';
+  let html='<div class="small">Đọc được <b>'+refs.length+'</b> references/object từ PROJECT/dir/quét sâu. Cần kiểm tra thủ công: <b>'+warnCount+'</b>.</div>';
   html+='<table class="mt"><thead><tr><th>#</th><th>Loại</th><th>Tên/Mô tả</th><th>GUID</th><th>Version</th><th>Đường dẫn</th><th>Ghi chú khôi phục</th></tr></thead><tbody>';
   for(const r of refs){
     const hasWarn=(r.notes||[]).some(n=>!/Không thấy cảnh báo/i.test(n));
@@ -2223,11 +2456,13 @@ async function analyzeFile(file){
     result.warnings.push(...(result.cfb.warnings||[]));
     const cp=detectCodePage(result.cfb.streams);
     result.codePage=cp.codePage;
+    result.dirDecoded=cp.dirDecoded || null;
     if(cp.warning) result.warnings.push(cp.warning);
     result.modules=scanModules(result.cfb.streams, result.codePage);
     result.frxFiles=collectFrxFiles(result);
     result.references=extractVbaReferences(result);
-    if((result.references||[]).length) result.warnings.push('Đã đọc được '+result.references.length+' reference/object từ PROJECT stream; báo cáo references sẽ được kèm trong gói khôi phục.');
+    if((result.references||[]).length) result.warnings.push('Đã đọc được '+result.references.length+' reference/object từ PROJECT/dir/quét sâu; báo cáo references sẽ được kèm trong gói khôi phục.');
+    else if(result.dirRecordCount || result.dirDecoded) result.warnings.push('Đã đọc stream dir và chạy quét sâu nhưng chưa tách được reference/object. Có thể file chỉ dùng reference mặc định hoặc cấu trúc reference đặc biệt; hãy kiểm tra bằng VBA Editor nếu cần.');
     if(result.modules.length===0) result.warnings.push('Không trích được module VBA dạng text. Có thể file không có macro, bị mã hóa, hoặc cấu trúc VBA khác thường.');
     if((result.frxFiles||[]).some(f=>f.kind==='matched')) result.warnings.push('Đã phát hiện dữ liệu .frx/UserForm nhị phân; có thể xuất kèm gói khôi phục để import form đầy đủ hơn.');
     result.protection=detectVbaProjectStatus(result);
@@ -3796,7 +4031,7 @@ applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false);
 window.addEventListener('orientationchange', ()=>setTimeout(()=>applyLayoutMode(getSavedLayoutMode() || defaultLayoutMode(), false), 250));
 
 let deferredInstallPrompt = null;
-const APP_VERSION = '2026.06.04-pwa-15-references-recovery';
+const APP_VERSION = '2026.06.06-pwa-19-references-deep-scan-open-fix';
 function setPwaStatus(msg){ const el=$('pwaStatus'); if(el) el.textContent=msg; }
 window.addEventListener('beforeinstallprompt', (event)=>{
   event.preventDefault();
